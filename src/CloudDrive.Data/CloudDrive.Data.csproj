@@ -4,13 +4,15 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{4496C2FC-2784-41BA-9613-C19C87125DBB}</ProjectGuid>
+    <ProjectGuid>{6CDB7B93-DBB4-42D0-845D-D44CEA26E659}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CloudDrive.Core</RootNamespace>
-    <AssemblyName>CloudDrive.Core</AssemblyName>
+    <RootNamespace>CloudDrive.Data</RootNamespace>
+    <AssemblyName>CloudDrive.Data</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,6 +32,15 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="MongoDB.Bson">
+      <HintPath>..\..\lib\packages\mongocsharpdriver.1.8.3\lib\net35\MongoDB.Bson.dll</HintPath>
+    </Reference>
+    <Reference Include="MongoDB.Driver">
+      <HintPath>..\..\lib\packages\mongocsharpdriver.1.8.3\lib\net35\MongoDB.Driver.dll</HintPath>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\lib\packages\Newtonsoft.Json.5.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -39,21 +50,18 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FileSearch.cs" />
-    <Compile Include="FileSyncService.cs" />
+    <Compile Include="CloudUser.cs" />
+    <Compile Include="FileSystem\CloudUserDataSource.cs" />
+    <Compile Include="MongoDb\CloudUserDataSource.cs" />
+    <Compile Include="CloudFile.cs" />
+    <Compile Include="ICloudUserDataSource.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CloudDrive.Data\CloudDrive.Data.csproj">
-      <Project>{6cdb7b93-dbb4-42d0-845d-d44cea26e659}</Project>
-      <Name>CloudDrive.Data</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\CloudDrive.Service\CloudDrive.Service.csproj">
-      <Project>{22980de0-40cb-4ed4-8f68-61d2758bad8b}</Project>
-      <Name>CloudDrive.Service</Name>
-    </ProjectReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\NuGet.targets" Condition="Exists('$(SolutionDir)\.nuget\NuGet.targets')" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
