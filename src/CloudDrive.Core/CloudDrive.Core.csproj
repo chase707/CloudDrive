@@ -39,8 +39,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CloudUserManager.cs" />
     <Compile Include="FileSearch.cs" />
-    <Compile Include="FileSyncService.cs" />
+    <Compile Include="CacheFileManager.cs" />
+    <Compile Include="CloudFileDateComparison.cs" />
+    <Compile Include="CloudFileSyncQueue.cs" />
+    <Compile Include="FolderWatcher.cs" />
+    <Compile Include="ICloudFileComparison.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

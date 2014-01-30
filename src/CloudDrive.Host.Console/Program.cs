@@ -1,28 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Configuration;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using SkyNet;
-using SkyNet.Client;
-using CloudDrive.Service.SkyDrive;
+﻿using System.Collections.Generic;
+using Autofac;
 using CloudDrive.Core;
 using CloudDrive.Data;
-using CloudDrive.Data.FileSystem;
+using CloudDrive.Service;
 
 namespace CloudDrive.Host.ConsoleHost
 {
 	class Program
-	{		
+	{
+		static IContainer ApplicationContainer { get; set; }
 		static void Main(string[] args)
 		{
-			var currentUser = GetCloudUser();
-			var refreshedUser = new CloudUser(currentUser.UniqueName);
-			var fileSearch = new FileSearch();
-			var skyDriveService = new SkyDriveCloudService(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
-			var fileSync = new FileSyncService(skyDriveService, currentUser);
+			ApplicationContainer = new CloudDriveApplicationBuilder().BuildApplication();
+
+			var cloudUserManager = ApplicationContainer.Resolve<CloudUserManager>();
+			var fileSearch = ApplicationContainer.Resolve<FileSearch>();
+			var cacheManagerFactory = ApplicationContainer.Resolve<CacheFileManagerFactory>();
+			var cloudService = ApplicationContainer.Resolve<ICloudService>();
+			
+			var currentUser = cloudUserManager.Get("chase707@gmail.com");
+			var refreshedUser = new CloudUser(currentUser.UniqueName);			
 
 			// iterate through root folders and grab new list of files
 			foreach (var rootFolder in currentUser.Files)
@@ -32,30 +29,29 @@ namespace CloudDrive.Host.ConsoleHost
 					refreshedUser.Files.Add(foundFile);
 			}
 
-			fileSync.SyncFolder(refreshedUser.Files);
+			// find differences between cache and current files on disk/cloud
+			var cacheManager = cacheManagerFactory(currentUser);
+			cacheManager.EvalDifferences(refreshedUser.Files);
+			
+			// sync differences
+			foreach (var file in refreshedUser.Files)
+				RecursiveSync(cloudService, refreshedUser.Files);
 
+			// save out user info
 			currentUser.Files = refreshedUser.Files;
-
-			SaveCloudUser(currentUser);
+			cloudUserManager.Set(currentUser);
 		}
 
-		static CloudUser GetCloudUser()
+		static void RecursiveSync(ICloudService cloudService,  IEnumerable<CloudFile> files, CloudFile parentFile = null)
 		{
-			CloudUserDataSource dataSource = new CloudUserDataSource(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
-			var myCloudUser = dataSource.Get(string.Empty);
-			if (myCloudUser == null)
+			foreach (var file in files)
 			{
-				myCloudUser = new CloudUser("chase707@gmail.com");
-				dataSource.Set(myCloudUser);
+				if (file.NewOrChanged)
+					cloudService.Set(parentFile != null ? parentFile.RemoteId : string.Empty, file);
+
+				if (file.FileType == CloudFileType.Folder)
+					RecursiveSync(cloudService, file.Children, file);
 			}
-
-			return myCloudUser;
 		}
-
-		static void SaveCloudUser(CloudUser myUser)
-		{
-			CloudUserDataSource dataSource = new CloudUserDataSource(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
-			dataSource.Set(myUser);
-		}		
 	}
 }

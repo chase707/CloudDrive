@@ -1,5 +1,4 @@
-﻿using MongoDB.Bson;
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace CloudDrive.Data
@@ -24,22 +23,25 @@ namespace CloudDrive.Data
 		public DateTime RemoteDateUpdated { get; set; }
 		public DateTime RemoteDateCreated { get; set; }
 
-		public CloudFile Parent { get; set; }
 		public List<CloudFile> Children { get; set; }
 
-		//public CloudFile ShallowCopy()
-		//{
-		//	return new CloudFile()
-		//	{
-		//		Name = this.Name,
-		//		Children = new List<CloudFile>(),
-		//		LocalDateCreated = this.DateCreated,
-		//		LocalDateUpdated = this.DateUpdated,
-		//		LocalPath = this.LocalPath,
-		//		FileType = this.FileType,
-		//		RemotePath = this.RemotePath
-		//	};
-		//}
+		public bool NewOrChanged { get; set; }
+
+		public CloudFile ShallowCopy()
+		{
+			return new CloudFile()
+			{
+				Name = this.Name,
+				LocalDateCreated = this.LocalDateCreated,
+				LocalDateUpdated = this.LocalDateUpdated,
+				LocalPath = this.LocalPath,
+				FileType = this.FileType,
+				RemotePath = this.RemotePath,
+				RemoteId = this.RemoteId,
+				RemoteDateCreated = this.RemoteDateCreated,
+				RemoteDateUpdated = this.RemoteDateUpdated
+			};
+		}
 	}
 }
 
