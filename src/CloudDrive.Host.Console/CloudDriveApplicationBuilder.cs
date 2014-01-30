@@ -20,16 +20,24 @@ namespace CloudDrive.Host.ConsoleHost
 
 			containerBuilder.RegisterType<SkyDriveCloudService>()
 				.WithParameter("configurationFolder", ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"])
+<<<<<<< HEAD
 				.As<ICloudService>()
                 .SingleInstance();
 
             containerBuilder.RegisterType<CloudFileChangeComparer>()
                 .As<ICloudFileChangeComparer>();
+=======
+				.As<ICloudService>();
+
+			containerBuilder.RegisterType<CloudFileDateComparison>()
+				.As<ICloudFileComparison>();
+>>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
 
 			containerBuilder.RegisterType<CloudDrive.Data.FileSystem.CloudUserDataSource>()
 				.WithParameter("storagePath", ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"])
 				.As<ICloudUserDataSource>();
 
+<<<<<<< HEAD
             containerBuilder.Register<CloudUser>(x =>
                 {
                     var cloudUserManager = x.Resolve<CloudUserManager>();
@@ -43,14 +51,24 @@ namespace CloudDrive.Host.ConsoleHost
 
 			containerBuilder.RegisterType<SyncQueue>()
                 .SingleInstance();
+=======
+			containerBuilder.RegisterType<CloudUserManager>();
+
+			containerBuilder.RegisterType<CacheFileManager>();
+
+			containerBuilder.RegisterType<CloudFileSyncQueue>();
+>>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
 
 			containerBuilder.RegisterType<FileSearch>();
 
 			containerBuilder.RegisterType<FolderWatcher>();
 
+<<<<<<< HEAD
             containerBuilder.RegisterType<SyncService>()
                 .SingleInstance();
 
+=======
+>>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
 			return containerBuilder.Build();
 		}
 	}

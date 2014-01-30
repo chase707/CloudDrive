@@ -22,6 +22,8 @@ namespace CloudDrive.Host.ConsoleHost
 
             //var currentUser = cloudUserManager.Get("chase707@gmail.com");
             //var refreshedUser = new CloudUser(currentUser.UniqueName);			
+			cloudUserManager.Set(currentUser);
+		}
 
             //// iterate through root folders and grab new list of files
             //foreach (var rootFolder in currentUser.Files)
@@ -30,6 +32,16 @@ namespace CloudDrive.Host.ConsoleHost
             //    if (foundFile != null)
             //        refreshedUser.Files.Add(foundFile);
             //}
+		static void RecursiveSync(ICloudService cloudService,  IEnumerable<CloudFile> files, CloudFile parentFile = null)
+		{
+			foreach (var file in files)
+			{
+				if (file.NewOrChanged)
+					cloudService.Set(parentFile != null ? parentFile.RemoteId : string.Empty, file);
+
+				if (file.FileType == CloudFileType.Folder)
+					RecursiveSync(cloudService, file.Children, file);
+			}
 
             //// find differences between cache and current files on disk/cloud
             //var cacheManager = cacheManagerFactory(currentUser);
