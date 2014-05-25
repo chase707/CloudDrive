@@ -26,20 +26,6 @@ namespace CloudDrive.Data
 
 		public CloudFile Parent { get; set; }
 		public List<CloudFile> Children { get; set; }
-
-		//public CloudFile ShallowCopy()
-		//{
-		//	return new CloudFile()
-		//	{
-		//		Name = this.Name,
-		//		Children = new List<CloudFile>(),
-		//		LocalDateCreated = this.DateCreated,
-		//		LocalDateUpdated = this.DateUpdated,
-		//		LocalPath = this.LocalPath,
-		//		FileType = this.FileType,
-		//		RemotePath = this.RemotePath
-		//	};
-		//}
 	}
 }
 

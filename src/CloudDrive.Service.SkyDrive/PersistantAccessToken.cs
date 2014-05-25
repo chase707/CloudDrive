@@ -63,7 +63,6 @@ namespace CloudDrive.Service.SkyDrive
 			XDocument doc = new XDocument();
 			using (var writer = doc.CreateWriter())
 			{
-				// write xml into the writer
 				var serializer = new DataContractSerializer(this._AccessToken.GetType());
 				serializer.WriteObject(writer,  this._AccessToken);
 			}

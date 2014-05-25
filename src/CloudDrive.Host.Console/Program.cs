@@ -15,29 +15,58 @@ using CloudDrive.Data.FileSystem;
 namespace CloudDrive.Host.ConsoleHost
 {
 	class Program
-	{		
-		static void Main(string[] args)
+	{
+        static SyncQueue SyncQueue;
+        static FileSearch FileSearch = new FileSearch();
+        static void Main(string[] args)
 		{
 			var currentUser = GetCloudUser();
-			var refreshedUser = new CloudUser(currentUser.UniqueName);
-			var fileSearch = new FileSearch();
+			var refreshedUser = new CloudUser(currentUser.UniqueName);			
 			var skyDriveService = new SkyDriveCloudService(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
-			var fileSync = new FileSyncService(skyDriveService, currentUser);
+            var fileComparer = new CloudFileChangeComparer(skyDriveService);
 
-			// iterate through root folders and grab new list of files
-			foreach (var rootFolder in currentUser.Files)
-			{
-				var foundFile = fileSearch.FindFilesAndFolders(rootFolder.LocalPath);
-				if (foundFile != null)
-					refreshedUser.Files.Add(foundFile);
-			}
+            SyncQueue = new Core.SyncQueue(currentUser, fileComparer);
 
-			fileSync.SyncFolder(refreshedUser.Files);
+            // find any new/changed local files
+            // currently deletes are not supported
+            foreach (var rootFolder in currentUser.Files)
+            {
+                var foundFile = FileSearch.FindFilesAndFolders(rootFolder.LocalPath);
+                if (foundFile != null)
+                    refreshedUser.Files.Add(foundFile);
+            }
 
-			currentUser.Files = refreshedUser.Files;
+            // enqueue any changes for sync
+            foreach (var file in refreshedUser.Files)
+            {
+                SyncQueue.EnqueueFileTree(file);
+            }
 
-			SaveCloudUser(currentUser);
+            var fileWatcher = new FolderWatcher();
+            fileWatcher.WatchFolder(currentUser.Files[0].LocalPath);
+            fileWatcher.FileChanged += fileWatcher_FileChanged;
+            System.Threading.Thread.CurrentThread.Join();
+
+
+            var thread = new System.Threading.Thread();
+            //fileSync.SyncLocalFolder();
+
+            //currentUser.Files = refreshedUser.Files;
+
+            //SaveCloudUser(currentUser);
 		}
+
+        static void fileWatcher_FileChanged(string fileName)
+        {
+            var cloudFile = FileSearch.FindFile(fileName);
+
+            SyncQueue.EnqueueFile(cloudFile);
+        }
+
+        static void SyncFileThread()
+        {
+
+        }
 
 		static CloudUser GetCloudUser()
 		{

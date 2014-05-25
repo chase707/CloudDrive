@@ -10,6 +10,23 @@ namespace CloudDrive.Core
 {
 	public class FileSearch
 	{
+        public CloudFile FindFile(string fullPath)
+        {
+            if (!File.Exists(fullPath))
+                return null;
+
+            var fi = new System.IO.FileInfo(fullPath);
+            return new CloudFile()
+            {
+                Children = null,
+                LocalDateCreated = fi.CreationTime,
+                LocalDateUpdated = fi.LastWriteTime,
+                LocalPath = fi.FullName,
+                Name = fi.Name,
+                FileType = CloudFileType.File
+            };
+        }
+
 		public CloudFile FindFilesAndFolders(string rootFolder, string fileSearchWildcards = "*.*")
 		{
 			if (!Directory.Exists(rootFolder))
@@ -34,10 +51,7 @@ namespace CloudDrive.Core
 		void RecursiveFileSearch(System.IO.DirectoryInfo root, string searchString, CloudFile parentFolder, List<CloudFile> cloudFiles)
 		{
 			System.IO.FileInfo[] files = null;
-
-
-			//cloudFiles.Add(thisFolder);
-
+            
 			try
 			{ files = root.GetFiles(searchString); }
 			catch (UnauthorizedAccessException) { }

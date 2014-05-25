@@ -4,15 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{4496C2FC-2784-41BA-9613-C19C87125DBB}</ProjectGuid>
-    <OutputType>Library</OutputType>
+    <ProjectGuid>{495ED0B4-5B67-4E46-AE1B-235743BB0766}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CloudDrive.Core</RootNamespace>
-    <AssemblyName>CloudDrive.Core</AssemblyName>
+    <RootNamespace>CloudDrive.Host.ServiceHost</RootNamespace>
+    <AssemblyName>CloudDrive.Host.ServiceHost</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -22,6 +23,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
@@ -31,29 +33,42 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration.Install" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Management" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
+    <Reference Include="System.ServiceProcess" />
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FileMatcher.cs" />
-    <Compile Include="FileSearch.cs" />
-    <Compile Include="FolderWatcher.cs" />
-    <Compile Include="SyncQueue.cs" />
+    <Compile Include="CloudDriveService.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="CloudDriveService.Designer.cs">
+      <DependentUpon>CloudDriveService.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="ProjectInstaller.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ProjectInstaller.Designer.cs">
+      <DependentUpon>ProjectInstaller.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CloudDrive.Data\CloudDrive.Data.csproj">
-      <Project>{6cdb7b93-dbb4-42d0-845d-d44cea26e659}</Project>
-      <Name>CloudDrive.Data</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\CloudDrive.Service\CloudDrive.Service.csproj">
-      <Project>{22980de0-40cb-4ed4-8f68-61d2758bad8b}</Project>
-      <Name>CloudDrive.Service</Name>
-    </ProjectReference>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="CloudDriveService.resx">
+      <DependentUpon>CloudDriveService.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ProjectInstaller.resx">
+      <DependentUpon>ProjectInstaller.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
