@@ -34,24 +34,21 @@ namespace CloudDrive.Core
             }
         }
 
-		public void EnqueueFileTree(CloudFile localFolder, CloudFile parent = null)
-		{
-            lock (QueueLock)
+        public void EnqueueFileTree(CloudFile localFolder, CloudFile parent = null)
+        {
+            EnqueueFile(localFolder, parent);
+
+            if (localFolder.FileType != CloudFileType.Folder)
+                return;
+
+            foreach (var localFile in localFolder.Children)
             {
-                EnqueueFile(localFolder, parent);
+                EnqueueFile(localFile, parent);
 
-                if (localFolder.FileType != CloudFileType.Folder)
-                    return;
-
-                foreach (var localFile in localFolder.Children)
-                {
-                    EnqueueFile(localFile, parent);
-
-                    if (localFile.FileType == CloudFileType.Folder)
-                        EnqueueFileTree(localFile, localFile);
-                }
+                if (localFile.FileType == CloudFileType.Folder)
+                    EnqueueFileTree(localFile, localFile);
             }
-		}
+        }
 
         public CloudFile Dequeue()
         {
