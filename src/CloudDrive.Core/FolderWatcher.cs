@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 <<<<<<< HEAD
+<<<<<<< HEAD
 using System.Linq;
 using System.Text;
 using System.IO;
@@ -129,6 +130,8 @@ namespace CloudDrive.Core
         }
     }
 =======
+=======
+>>>>>>> f8d26e4d8c6b8cdb3423c6b36280233a24eb9515
 using System.IO;
 using System.Linq;
 using CloudDrive.Data;
@@ -161,5 +164,8 @@ namespace CloudDrive.Core
 			// TODO: Implement file compare and event trigger to sync queue
 		}
 	}
+<<<<<<< HEAD
 >>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
+=======
+>>>>>>> f8d26e4d8c6b8cdb3423c6b36280233a24eb9515
 }

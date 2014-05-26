@@ -8,9 +8,12 @@ using CloudDrive.Data;
 namespace CloudDrive.Core
 {
 <<<<<<< HEAD
+<<<<<<< HEAD
     public delegate CloudUser CloudUserFactory(string userName);
 =======
 >>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
+=======
+>>>>>>> f8d26e4d8c6b8cdb3423c6b36280233a24eb9515
 	public class CloudUserManager
 	{
 		public ICloudUserDataSource DataSource { get; set; }
@@ -33,10 +36,14 @@ namespace CloudDrive.Core
 			return myCloudUser;
 		}
 <<<<<<< HEAD
+<<<<<<< HEAD
         
 =======
 
 >>>>>>> Refactored FileSync into CacheFileManager and Comparison, external sync
+=======
+
+>>>>>>> f8d26e4d8c6b8cdb3423c6b36280233a24eb9515
 		public void Set(CloudUser myUser)
 		{
 			DataSource.Set(myUser);
