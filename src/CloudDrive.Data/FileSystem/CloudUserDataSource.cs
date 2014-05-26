@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Threading.Tasks;
+﻿using System.IO;
 using Newtonsoft.Json;
 
 namespace CloudDrive.Data.FileSystem
@@ -45,8 +40,10 @@ namespace CloudDrive.Data.FileSystem
 				{
 					using (JsonWriter jw = new JsonTextWriter(sw))
 					{
-						jw.Formatting = Formatting.Indented;
-						new JsonSerializer().Serialize(jw, cloudUser);
+                        jw.Formatting = Formatting.Indented;
+                        var jsonSerializer = new JsonSerializer();
+                        jsonSerializer.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
+                        jsonSerializer.Serialize(jw, cloudUser);
 					}
 				}
 			}

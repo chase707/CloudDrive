@@ -7,16 +7,21 @@ using System.Threading.Tasks;
 
 namespace CloudDrive.Core
 {
-    public delegate void FolderChangedDelegate(string folderName);
+    //public delegate void FolderChangedDelegate(string folderName);
     public delegate void FileChangedDelegate(string fileName);
+    public delegate void FileCreatedDelegate(string fileName);
+    public delegate void FileDeletedDelegate(string fileName);
+    public delegate void FileRenamedDelegate(string oldFilename, string newFilename);
 
     public class FolderWatcher
     {
         Dictionary<string, FileSystemWatcher> FolderWatchers { get; set; }
         Dictionary<string, FileSystemWatcher> FileWatchers { get; set; }
 
-        public event FolderChangedDelegate FolderChanged;
         public event FileChangedDelegate FileChanged;
+        public event FileCreatedDelegate FileCreated;
+        public event FileRenamedDelegate FileRenamed;
+        public event FileDeletedDelegate FileDeleted;
 
         public FolderWatcher()
         {
@@ -48,12 +53,31 @@ namespace CloudDrive.Core
             watcher.Changed += FolderWatcher_FileEventOccurred;
             watcher.Created += FolderWatcher_FileEventOccurred;
             watcher.Deleted += FolderWatcher_FileEventOccurred;
-            watcher.Renamed += FolderWatcher_FileEventOccurred;
+            watcher.Renamed += FolderWatcher_RenamedEventOccurred;
             watcher.EnableRaisingEvents = true;
 
             return watcher;
         }
-        
+
+        void FolderWatcher_RenamedEventOccurred(object sender, RenamedEventArgs e)
+        {
+            if (FolderWatchers.ContainsValue((FileSystemWatcher)sender))
+            {
+                Console.WriteLine("Directory renamed:{0}", e.FullPath);
+            }
+            else
+            {
+                Console.WriteLine("File renamed:{0}", e.FullPath);
+            }
+
+            switch (e.ChangeType)
+            {
+                case WatcherChangeTypes.Renamed:
+                    FireFileRenamed(e);
+                    break;
+            }
+        }
+
         void FolderWatcher_FileEventOccurred(object sender, FileSystemEventArgs e)
         {
             if (FolderWatchers.ContainsValue((FileSystemWatcher)sender))
@@ -76,9 +100,6 @@ namespace CloudDrive.Core
                 case WatcherChangeTypes.Deleted:
                     FireFileDeleted(e);
                     break;
-                case WatcherChangeTypes.Renamed:
-                    FireFileRenamed(e);
-                    break;
             }
         }
 
@@ -90,17 +111,20 @@ namespace CloudDrive.Core
 
         void FireFileCreated(FileSystemEventArgs e)
         {
-
+            if (FileCreated != null)
+                FileCreated(e.FullPath);
         }
 
         void FireFileDeleted(FileSystemEventArgs e)
         {
-
+            if (FileDeleted != null)
+                FileDeleted(e.FullPath);
         }
 
-        void FireFileRenamed(FileSystemEventArgs e)
-        {
-
+        void FireFileRenamed(RenamedEventArgs e)
+        {            
+            if (FileRenamed != null)
+                FileRenamed(e.OldFullPath, e.FullPath);
         }
     }
 }

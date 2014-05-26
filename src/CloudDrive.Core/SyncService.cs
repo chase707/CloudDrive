@@ -12,6 +12,8 @@ using CloudDrive.Service;
 
 namespace CloudDrive.Core
 {
+    public delegate SyncService SyncServiceFactory(CloudUser cloudUser);
+
     public class SyncService
     {
         CloudUser CloudUser { get; set; }
@@ -19,58 +21,45 @@ namespace CloudDrive.Core
         FileSearch FileSearch { get; set; }
         FolderWatcher FileWatcher { get; set; }
         ICloudService CloudService { get; set; }
-        CloudUserDataSource CloudUserDataSource { get; set; }
+        CloudUserManager CloudUserManager { get; set; }
+        CloudFileManager CloudFileManager { get; set; }
 
-        public SyncService(CloudUserDataSource dataSource, ICloudService cloudService, ICloudFileChangeComparer fileComparer)
+        public SyncService(CloudUser cloudUser, SyncQueue syncQueue, FolderWatcher folderWatcher, FileSearch fileSearch, 
+            CloudUserManager cloudUserManager, CloudFileManager cloudFileManager, ICloudService cloudService)
         {
-            CloudUserDataSource = dataSource;
-            CloudUser = GetCloudUser();
-            CloudService = cloudService; 
-            FileWatcher = new FolderWatcher();
-            FileSearch = new FileSearch();
-            SyncQueue = new SyncQueue(CloudUser, fileComparer);            
-        }
+            CloudUserManager = cloudUserManager;
+            CloudFileManager = cloudFileManager;
+            CloudUser = cloudUser;
+            CloudService = cloudService;
+            FileWatcher = folderWatcher;
+            FileSearch = fileSearch;
+            SyncQueue = syncQueue;
 
-        public CloudUser RefreshCloudUser()
-        {
-            var refreshedUser = new CloudUser(CloudUser.UniqueName);
-            
-            // find any new/changed local files
-            // currently deletes are not supported
-            foreach (var rootFolder in CloudUser.Files)
-            {
-                var foundFile = FileSearch.FindFilesAndFolders(rootFolder.LocalPath);
-                if (foundFile != null)
-                    refreshedUser.Files.Add(foundFile);
-            }
+            // refresh folder list (find new folders since last run)
+            cloudFileManager.RefreshFolders();
 
-            CloudUser.Files = refreshedUser.Files;
+            // save user
+            cloudUserManager.Set(CloudUser);
 
-            SaveCloudUser();
+            // find changes against the cloud
+            cloudFileManager.FindChanges();
 
-            return CloudUser;
+            // enqueue any changed files
+            RecursiveEnqueue(cloudUser.Files);
         }
 
         public void StartSync()
         {
             FileWatcher.FileChanged += FileWatcher_FileChanged;
-
+            FileWatcher.FileCreated += FileWatcher_FileCreated;
+            FileWatcher.FileDeleted += FileWatcher_FileDeleted;
+            FileWatcher.FileRenamed += FileWatcher_FileRenamed;
             foreach (var file in CloudUser.Files)
             {
-                SyncQueue.EnqueueFileTree(file);
                 FileWatcher.WatchFolder(file.LocalPath);
             }
 
             new System.Threading.Thread(new System.Threading.ThreadStart(SyncFileThread)).Start();
-        }
-
-        void FileWatcher_FileChanged(string fileName)
-        {
-            var cloudFile = FileSearch.FindFile(fileName);
-            if (cloudFile == null)
-                return;
-
-            SyncQueue.EnqueueFile(cloudFile);
         }
 
         void SyncFileThread()
@@ -81,26 +70,71 @@ namespace CloudDrive.Core
                 var cloudFile = SyncQueue.Dequeue();
                 if (cloudFile != null)
                 {
-                    CloudService.Set(cloudFile.Parent, cloudFile);
+                    CloudService.Set(cloudFile);
+
+                    CloudUserManager.Set(CloudUser);
                 }
             }
         }
 
-        CloudUser GetCloudUser()
-        {            
-            var myCloudUser = CloudUserDataSource.Get(string.Empty);
-            //if (myCloudUser == null)
-            //{
-            //    myCloudUser = new CloudUser("chase707@gmail.com");
-            //    dataSource.Set(myCloudUser);
-            //}
-
-            return myCloudUser;
-        }
-
-        void SaveCloudUser()
+        void RecursiveEnqueue(IEnumerable<CloudFile> files)
         {
-            CloudUserDataSource.Set(CloudUser);
+            foreach (var file in files)
+            {
+                if (file.NewOrChanged)
+                    SyncQueue.Enqueue(file);
+
+                if (file.FileType == CloudFileType.Folder)
+                    RecursiveEnqueue(file.Children);
+            }
         }
+
+        void FindAndEnqueueFile(string fileName)
+        {
+            var cloudFile = CloudFileManager.FindFile(fileName);
+
+            if (cloudFile == null)
+            {
+                cloudFile = FileSearch.FindFile(fileName);
+                if (cloudFile == null)
+                    return;
+
+                var fileInfo = new System.IO.FileInfo(cloudFile.LocalPath);
+                var parent = CloudFileManager.FindFile(fileInfo.DirectoryName);
+
+                if (parent == null)
+                    return;
+
+                parent.Children.Add(cloudFile);
+                cloudFile.Parent = parent;
+
+                CloudUserManager.Set(CloudUser);
+            }
+
+            SyncQueue.Enqueue(cloudFile);
+        }
+
+        void FileWatcher_FileCreated(string fileName)
+        {
+            FindAndEnqueueFile(fileName);
+        }
+
+        void FileWatcher_FileChanged(string fileName)
+        {
+            FindAndEnqueueFile(fileName);    
+        }
+
+        void FileWatcher_FileRenamed(string oldFilename, string newFilename)
+        {
+            //var cloudFile = CloudFileManager.FindFile(oldFilename);
+
+            //cloudFile.LocalPath = newFilename;
+            //cloudFile
+        }
+
+        void FileWatcher_FileDeleted(string fileName)
+        {
+            //throw new NotImplementedException();
+        }               
     }
 }

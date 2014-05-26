@@ -22,12 +22,29 @@ namespace CloudDrive.Data
 		public string RemotePath { get; set; }
 		public DateTime RemoteDateUpdated { get; set; }
 		public DateTime RemoteDateCreated { get; set; }
-        
-        public CloudFile Parent { get; set; }
 
 		public List<CloudFile> Children { get; set; }
+<<<<<<< HEAD
+=======
 
 		public bool NewOrChanged { get; set; }
+
+		public CloudFile ShallowCopy()
+		{
+			return new CloudFile()
+			{
+				Name = this.Name,
+				LocalDateCreated = this.LocalDateCreated,
+				LocalDateUpdated = this.LocalDateUpdated,
+				LocalPath = this.LocalPath,
+				FileType = this.FileType,
+				RemotePath = this.RemotePath,
+				RemoteId = this.RemoteId,
+				RemoteDateCreated = this.RemoteDateCreated,
+				RemoteDateUpdated = this.RemoteDateUpdated
+			};
+		}
+>>>>>>> dev
 	}
 }
 

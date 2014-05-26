@@ -7,8 +7,8 @@
     <ProjectGuid>{167599D9-0EDF-45A6-AE92-291C6F238A76}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CloudDrive.Host.Console</RootNamespace>
-    <AssemblyName>CloudDrive.Host.Console</AssemblyName>
+    <RootNamespace>CloudDrive.Host.ConsoleHost</RootNamespace>
+    <AssemblyName>CloudDrive.Host.ConsoleHost</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
@@ -34,6 +34,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Autofac">
+      <HintPath>..\..\lib\packages\Autofac.3.3.0\lib\net40\Autofac.dll</HintPath>
+    </Reference>
     <Reference Include="MongoDB.Bson">
       <HintPath>..\..\lib\packages\mongocsharpdriver.1.8.3\lib\net35\MongoDB.Bson.dll</HintPath>
     </Reference>
@@ -56,6 +59,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CloudDriveApplicationBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -68,7 +72,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CloudDrive.Core\CloudDrive.Core.csproj">
       <Project>{4496c2fc-2784-41ba-9613-c19c87125dbb}</Project>
-      <Name>CloudDrive.Core</Name>
+      <Name>CloudDrive.Core2</Name>
     </ProjectReference>
     <ProjectReference Include="..\CloudDrive.Data\CloudDrive.Data.csproj">
       <Project>{6cdb7b93-dbb4-42d0-845d-d44cea26e659}</Project>

@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using CloudDrive.Data;
 
 namespace CloudDrive.Core
@@ -24,72 +21,78 @@ namespace CloudDrive.Core
                 LocalPath = fi.FullName,
                 Name = fi.Name,
                 FileType = CloudFileType.File
-            };
+            };            
         }
+        
+        //public CloudFile FindFolder(string fullPath)
+        //{
+        //    if (!Directory.Exists(fullPath))
+        //        return null;
 
+        //    var fi = new System.IO.DirectoryInfo(fullPath);
+        //    return new CloudFile()
+        //    {
+        //        Children = null,
+        //        LocalDateCreated = fi.CreationTime,
+        //        LocalDateUpdated = fi.LastWriteTime,
+        //        LocalPath = fi.FullName,
+        //        Name = fi.Name,
+        //        FileType = CloudFileType.Folder
+        //    };
+        //}
+        
 		public CloudFile FindFilesAndFolders(string rootFolder, string fileSearchWildcards = "*.*")
 		{
 			if (!Directory.Exists(rootFolder))
 				return null;
 
 			var rootFolderInfo = new System.IO.DirectoryInfo(rootFolder);
-			var thisFolder = new CloudFile()
-			{
-				Children = new List<CloudFile>(),
-				LocalDateCreated = rootFolderInfo.CreationTime,
-				LocalDateUpdated = rootFolderInfo.LastWriteTime,
-				LocalPath = rootFolderInfo.FullName,
-				Name = rootFolderInfo.Name,
-				FileType = CloudFileType.Folder
-			};
+			var topLevelFolder = CreateCloudFile(rootFolderInfo, null);
+			
+			RecursiveFileSearch(topLevelFolder, fileSearchWildcards);
 
-			RecursiveFileSearch(rootFolderInfo, fileSearchWildcards, thisFolder, thisFolder.Children);
-
-			return thisFolder;
+			return topLevelFolder;
 		}
 
-		void RecursiveFileSearch(System.IO.DirectoryInfo root, string searchString, CloudFile parentFolder, List<CloudFile> cloudFiles)
+		void RecursiveFileSearch(CloudFile parentCloudFolder, string searchString)
 		{
-			System.IO.FileInfo[] files = null;
-            
-			try
-			{ files = root.GetFiles(searchString); }
-			catch (UnauthorizedAccessException) { }
-			catch (System.IO.DirectoryNotFoundException e) { }
+			var parentFolderInfo = new System.IO.DirectoryInfo(parentCloudFolder.LocalPath);
 
-			if (files != null)
-			{
-				foreach (System.IO.FileInfo fi in files)
-				{
-					parentFolder.Children.Add(new CloudFile()
-					{
-						Children = null,
-						LocalDateCreated = fi.CreationTime,
-						LocalDateUpdated = fi.LastWriteTime,
-						LocalPath = fi.FullName,
-						Name = fi.Name,
-						FileType = CloudFileType.File
-					});
-				}
+			// get all sub-files in parent folder
+			var files = FindFiles(parentFolderInfo, parentCloudFolder, searchString);
+			if (files.Count() > 0)
+				parentCloudFolder.Children.AddRange(files);
 
-				var subDirs = root.GetDirectories();
-				foreach (System.IO.DirectoryInfo dirInfo in subDirs)
-				{
-					var thisChild = new CloudFile()
-					{
-						Children = new List<CloudFile>(),
-						LocalDateCreated = dirInfo.CreationTime,
-						LocalDateUpdated = dirInfo.LastWriteTime,
-						LocalPath = dirInfo.FullName,
-						Name = dirInfo.Name,
-						FileType = CloudFileType.Folder
-					};
+			// get all sub-folders
+			foreach (System.IO.DirectoryInfo dirInfo in parentFolderInfo.GetDirectories())            
+            {
+                var thisChild = CreateCloudFile(dirInfo, parentCloudFolder);
 
-					parentFolder.Children.Add(thisChild);
+				parentCloudFolder.Children.Add(thisChild);
 
-					RecursiveFileSearch(dirInfo, searchString, thisChild, thisChild.Children);
-				}
+				// recursively find files and folders from this sub-folder
+				RecursiveFileSearch(thisChild, searchString);
 			}
+		}
+
+		IEnumerable<CloudFile> FindFiles(System.IO.DirectoryInfo parentFolderInfo, CloudFile parentCloudFolder, string searchString)
+		{
+            return parentFolderInfo.GetFiles(searchString).Select(fi => CreateCloudFile(fi, parentCloudFolder));
+		}
+		
+		CloudFile CreateCloudFile(System.IO.FileSystemInfo fsi, CloudFile parent)
+		{
+			bool folder = fsi.GetType() == typeof(System.IO.DirectoryInfo);
+			return new CloudFile()
+			{
+				Children = folder ? new List<CloudFile>() : null,
+				LocalDateCreated = fsi.CreationTime,
+				LocalDateUpdated = fsi.LastWriteTime,
+				LocalPath = fsi.FullName,
+				Name = fsi.Name,
+                Parent = parent,
+				FileType = folder ? CloudFileType.Folder : CloudFileType.File
+			};
 		}
 	}
 }
