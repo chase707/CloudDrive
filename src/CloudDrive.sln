@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudDrive.Host.ConsoleHost", "CloudDrive.Host.Console\CloudDrive.Host.ConsoleHost.csproj", "{167599D9-0EDF-45A6-AE92-291C6F238A76}"
 EndProject
@@ -21,6 +21,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudDrive.Service", "CloudDrive.Service\CloudDrive.Service.csproj", "{22980DE0-40CB-4ED4-8F68-61D2758BAD8B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudDrive.Host.ServiceHost", "CloudDrive.Host.ServiceHost\CloudDrive.Host.ServiceHost.csproj", "{495ED0B4-5B67-4E46-AE1B-235743BB0766}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CloudDrive.Configuration.App", "CloudDrive.Configuration.App\CloudDrive.Configuration.App.csproj", "{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -65,6 +67,12 @@ Global
 		{495ED0B4-5B67-4E46-AE1B-235743BB0766}.Release|Any CPU.Build.0 = Release|Any CPU
 		{495ED0B4-5B67-4E46-AE1B-235743BB0766}.Staging|Any CPU.ActiveCfg = Release|Any CPU
 		{495ED0B4-5B67-4E46-AE1B-235743BB0766}.Staging|Any CPU.Build.0 = Release|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Staging|Any CPU.ActiveCfg = Release|Any CPU
+		{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}.Staging|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

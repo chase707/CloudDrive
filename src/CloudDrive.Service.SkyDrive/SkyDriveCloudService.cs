@@ -26,6 +26,25 @@ namespace CloudDrive.Service.SkyDrive
 			}
 		}
 
+        public bool Authorized
+        {
+            get { return AccessToken != null && AccessToken.AccessToken != null && AccessToken.AccessToken.Access_Token != null && AccessToken.AccessToken.Expires_In > 0; }
+        }
+
+        public string GetAuthUrl()
+        {
+            return this.SkyDriveClient.GetAuthorizationRequestUrl(new Scope[] { Scope.Basic, Scope.Signin, Scope.SkyDrive, Scope.SkyDriveUpdate, Scope.OfflineAccess });
+        }
+
+        public void SetAuthorization(string code)
+        {
+            var accessToken = this.SkyDriveClient.GetAccessToken(code);
+            if (accessToken == null) throw new Exception("Could not get access token given authorization code.");
+
+            if (accessToken != null)
+                this.AccessToken.AccessToken = accessToken;
+        }
+
 		public IEnumerable<CloudFile> GetContents(string remotePathOrId)
 		{
 			var remoteContents = SkyDriveClient.GetContents(remotePathOrId);
