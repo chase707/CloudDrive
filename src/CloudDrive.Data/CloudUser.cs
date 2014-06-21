@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System;
 
 namespace CloudDrive.Data
 {
@@ -6,9 +8,14 @@ namespace CloudDrive.Data
 	{
 		public CloudUser(string uniqueName)
 		{
-			this.UniqueName = uniqueName;
-			this.Files = new List<CloudFile>();
+			UniqueName = uniqueName;
+			Files = new List<CloudFile>();
 		}
+
+        public static string GenerateRandomName()
+        {
+            return Guid.NewGuid().ToString();
+        }
 
 		public string UniqueName { get; set; }
 		public List<CloudFile> Files { get; set; }

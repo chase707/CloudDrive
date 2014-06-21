@@ -18,24 +18,18 @@ namespace CloudDrive.Core
 			CloudUser = currentUser;
 			FileComparison = fileComparison;
 		}
-
-        public bool FileChanged(CloudFile file)
-        {
-            var cacheFile = FindFile(file.LocalPath);
-             return FileComparison.Changed(cacheFile, file);
-        }
-        
+       
         public CloudFile FindFile(string localPath)
         {
             return RecursiveFindMatch(CloudUser.Files, localPath);
         }
 
-        public void FindChanges()
+        public void FindChanges(CloudUser refreshedUser)
         {
-            RecursiveFindChanges(CloudUser.Files);
+            RecursiveFindChanges(refreshedUser.Files);
         }
 
-        public void RefreshFolders()
+        public CloudUser RefreshUser()
         {
             var refreshedUser = new CloudUser(CloudUser.UniqueName);
 
@@ -47,7 +41,7 @@ namespace CloudDrive.Core
                     refreshedUser.Files.Add(foundFile);
             }
 
-            CloudUser.Files = refreshedUser.Files;
+            return refreshedUser;
         }
         
         void RecursiveFindChanges(List<CloudFile> files)
@@ -57,7 +51,15 @@ namespace CloudDrive.Core
 
             foreach (var localFile in files)
             {
-                localFile.NewOrChanged = FileChanged(localFile);
+                var cacheFile = FindFile(localFile.LocalPath);                
+                localFile.NewOrChanged = FileComparison.Changed(cacheFile, localFile);
+                if (localFile.RemoteId == null && cacheFile != null && cacheFile.RemoteId != null)
+                {
+                    localFile.RemoteDateCreated = cacheFile.RemoteDateCreated;
+                    localFile.RemoteDateUpdated = cacheFile.RemoteDateUpdated;
+                    localFile.RemoteId = cacheFile.RemoteId;
+                    localFile.RemotePath = cacheFile.RemotePath;
+                }
 
                 if (localFile.FileType == CloudFileType.Folder)
                     RecursiveFindChanges(localFile.Children);

@@ -42,7 +42,7 @@ namespace CloudDrive.Service.SkyDrive
 				var configurationFile = XDocument.Load(GetFullPath());
 				if (configurationFile != null)
 				{
-					this.AccessToken = Deserialize(configurationFile);
+					AccessToken = Deserialize(configurationFile);
 				}
 			}
 			catch (System.Xml.XmlException)
@@ -56,8 +56,8 @@ namespace CloudDrive.Service.SkyDrive
 			XDocument doc = new XDocument();
 			using (var writer = doc.CreateWriter())
 			{
-				var serializer = new DataContractSerializer(this._AccessToken.GetType());
-				serializer.WriteObject(writer,  this._AccessToken);
+				var serializer = new DataContractSerializer(_AccessToken.GetType());
+				serializer.WriteObject(writer,  _AccessToken);
 			}
 
 			return doc;
@@ -74,7 +74,7 @@ namespace CloudDrive.Service.SkyDrive
 
 		string GetFullPath()
 		{
-			return Path.Combine(this.AccessTokenFolder, FileName);
+			return Path.Combine(AccessTokenFolder, FileName);
 		}
 	}
 }

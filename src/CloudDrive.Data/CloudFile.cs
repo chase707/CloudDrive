@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Web.Script.Serialization;
 
 namespace CloudDrive.Data
 {
@@ -27,7 +28,23 @@ namespace CloudDrive.Data
 
 		public List<CloudFile> Children { get; set; }
 
+        [ScriptIgnore]
 		public bool NewOrChanged { get; set; }
+
+        public static CloudFile Create(System.IO.FileSystemInfo fsi, CloudFile parent)
+        {
+            bool folder = fsi.GetType() == typeof(System.IO.DirectoryInfo);
+            return new CloudFile()
+            {
+                Children = folder ? new List<CloudFile>() : null,
+                LocalDateCreated = fsi.CreationTime,
+                LocalDateUpdated = fsi.LastWriteTime,
+                LocalPath = fsi.FullName,
+                Name = fsi.Name,
+                Parent = parent,
+                FileType = folder ? CloudFileType.Folder : CloudFileType.File
+            };
+        }
 	}
 }
 

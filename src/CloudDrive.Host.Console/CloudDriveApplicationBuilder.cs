@@ -24,8 +24,7 @@ namespace CloudDrive.Host.ConsoleHost
                 .SingleInstance();
 
             containerBuilder.RegisterType<CloudFileChangeComparer>()
-                .As<ICloudFileChangeComparer>()
-				.As<ICloudService>();
+                .As<ICloudFileChangeComparer>();
 
 			containerBuilder.RegisterType<CloudDrive.Data.FileSystem.CloudUserDataSource>()
 				.WithParameter("storagePath", ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"])
@@ -34,7 +33,7 @@ namespace CloudDrive.Host.ConsoleHost
             containerBuilder.Register<CloudUser>(x =>
                 {
                     var cloudUserManager = x.Resolve<CloudUserManager>();
-                    return cloudUserManager.Get("chase707@gmail.com");
+                    return cloudUserManager.Get();
                 }
             ).SingleInstance();
 
@@ -44,9 +43,7 @@ namespace CloudDrive.Host.ConsoleHost
 
 			containerBuilder.RegisterType<SyncQueue>()
                 .SingleInstance();
-
-			containerBuilder.RegisterType<CloudUserManager>();
-
+            
 			containerBuilder.RegisterType<FileSearch>();
 
 			containerBuilder.RegisterType<FolderWatcher>();

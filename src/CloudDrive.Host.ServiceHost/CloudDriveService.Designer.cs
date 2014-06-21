@@ -31,7 +31,7 @@
             // 
             // CloudDriveService
             // 
-            this.ServiceName = "CloudDrive";
+            ServiceName = "CloudDrive";
 
         }
 

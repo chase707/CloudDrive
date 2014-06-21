@@ -18,11 +18,7 @@ namespace CloudDrive.Configuration.App
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-
-            var path = Application.ExecutablePath;
-
-            var config = ConfigurationManager.OpenExeConfiguration(string.Format("{0}\\..\\var\\app.config", path));
-
+            
             var cloudService = new SkyDriveCloudService(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
             if (!cloudService.Authorized)
                 Application.Run(new SkyDriveSignInForm(cloudService));

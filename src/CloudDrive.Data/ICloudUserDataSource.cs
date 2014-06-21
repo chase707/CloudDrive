@@ -3,7 +3,7 @@ namespace CloudDrive.Data
 {
 	public interface ICloudUserDataSource
 	{
-		CloudUser Get(string userId);
+		CloudUser Get();
 		void Set(CloudUser cloudUser);
 	}
 }

@@ -7,8 +7,6 @@ using CloudDrive.Data;
 
 namespace CloudDrive.Core
 {
-    public delegate CloudUser CloudUserFactory(string userName);
-
 	public class CloudUserManager
 	{
 		public ICloudUserDataSource DataSource { get; set; }
@@ -18,12 +16,12 @@ namespace CloudDrive.Core
 			DataSource = cloudUserDataSource;
 		}
 
-		public CloudUser Get(string email)
+		public CloudUser Get()
 		{
-			var myCloudUser = DataSource.Get(email);
+			var myCloudUser = DataSource.Get();
 			if (myCloudUser == null)
 			{
-				myCloudUser = new CloudUser(email);
+                myCloudUser = new CloudUser(CloudUser.GenerateRandomName());
 				
 				Set(myCloudUser);
 			}

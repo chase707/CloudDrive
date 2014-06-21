@@ -25,8 +25,9 @@ namespace CloudDrive.Configuration.App
             CloudService = cloudService;            
             if (!CloudService.Authorized)
 			{
-                this.signInBrowser.Navigate(CloudService.GetAuthUrl());
-				this.signInBrowser.DocumentCompleted += signInBrowser_DocumentCompleted;
+                var authUrl = CloudService.GetAuthUrl();
+                signInBrowser.Navigate(authUrl);
+				signInBrowser.DocumentCompleted += signInBrowser_DocumentCompleted;
 			}
 		}
 
@@ -35,9 +36,7 @@ namespace CloudDrive.Configuration.App
 			if (e.Url.Query.Contains("code"))
 			{
 				var code = System.Web.HttpUtility.ParseQueryString(e.Url.Query)["code"];
-                if (string.IsNullOrEmpty(code)) 
-                    MessageBox.Show("Error logging into one drive.");
-                else
+                if (!string.IsNullOrEmpty(code))
                     CloudService.SetAuthorization(code);
 			}
 		}

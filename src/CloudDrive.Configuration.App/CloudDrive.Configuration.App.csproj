@@ -32,7 +32,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\..\bin\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -61,7 +61,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConfigurationWizard.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -124,6 +123,14 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\CloudDrive.Core\CloudDrive.Core.csproj">
+      <Project>{4496c2fc-2784-41ba-9613-c19c87125dbb}</Project>
+      <Name>CloudDrive.Core</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CloudDrive.Data\CloudDrive.Data.csproj">
+      <Project>{6cdb7b93-dbb4-42d0-845d-d44cea26e659}</Project>
+      <Name>CloudDrive.Data</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CloudDrive.Service.SkyDrive\CloudDrive.Service.SkyDrive.csproj">
       <Project>{15b28b7e-f267-4e4d-b434-21e0d09987ac}</Project>
       <Name>CloudDrive.Service.SkyDrive</Name>

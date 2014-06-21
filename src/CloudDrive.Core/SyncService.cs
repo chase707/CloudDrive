@@ -36,16 +36,17 @@ namespace CloudDrive.Core
             SyncQueue = syncQueue;
 
             // refresh folder list (find new folders since last run)
-            cloudFileManager.RefreshFolders();
-
-            // save user
-            cloudUserManager.Set(CloudUser);
-
+            var refreshedUser = cloudFileManager.RefreshUser();
+            
             // find changes against the cloud
-            cloudFileManager.FindChanges();
+            cloudFileManager.FindChanges(refreshedUser);
+
+            // save out changes
+            CloudUser = refreshedUser;
+            CloudUserManager.Set(CloudUser);
 
             // enqueue any changed files
-            RecursiveEnqueue(cloudUser.Files);
+            RecursiveEnqueue(CloudUser.Files);
         }
 
         public void StartSync()
@@ -67,11 +68,21 @@ namespace CloudDrive.Core
             bool done = false;
             while (!done)
             {
-                var cloudFile = SyncQueue.Dequeue();
-                if (cloudFile != null)
+                var syncItem = SyncQueue.Dequeue();
+                if (syncItem != null)
                 {
-                    CloudService.Set(cloudFile);
-
+                    switch (syncItem.RequestedOperation)
+                    {
+                        case SyncQueueItem.SyncOperation.Save:
+                            CloudService.Set(syncItem.CloudFile);
+                            break;
+                        case SyncQueueItem.SyncOperation.Rename:
+                            CloudService.Rename(syncItem.CloudFile, (string) syncItem.OperationData);
+                            break;
+                        case SyncQueueItem.SyncOperation.None:
+                        case SyncQueueItem.SyncOperation.Delete:
+                            break;
+                    }
                     CloudUserManager.Set(CloudUser);
                 }
             }
@@ -82,7 +93,12 @@ namespace CloudDrive.Core
             foreach (var file in files)
             {
                 if (file.NewOrChanged)
-                    SyncQueue.Enqueue(file);
+                    SyncQueue.Enqueue(new SyncQueueItem()
+                    {
+                        CloudFile = file,
+                        OperationData = null,
+                        RequestedOperation = SyncQueueItem.SyncOperation.Save
+                    });
 
                 if (file.FileType == CloudFileType.Folder)
                     RecursiveEnqueue(file.Children);
@@ -92,7 +108,6 @@ namespace CloudDrive.Core
         void FindAndEnqueueFile(string fileName)
         {
             var cloudFile = CloudFileManager.FindFile(fileName);
-
             if (cloudFile == null)
             {
                 cloudFile = FileSearch.FindFile(fileName);
@@ -111,7 +126,12 @@ namespace CloudDrive.Core
                 CloudUserManager.Set(CloudUser);
             }
 
-            SyncQueue.Enqueue(cloudFile);
+            SyncQueue.Enqueue(new SyncQueueItem()
+            {
+                CloudFile = cloudFile,
+                OperationData = null,
+                RequestedOperation = SyncQueueItem.SyncOperation.Save
+            });
         }
 
         void FileWatcher_FileCreated(string fileName)
@@ -126,15 +146,24 @@ namespace CloudDrive.Core
 
         void FileWatcher_FileRenamed(string oldFilename, string newFilename)
         {
-            //var cloudFile = CloudFileManager.FindFile(oldFilename);
-
-            //cloudFile.LocalPath = newFilename;
-            //cloudFile
+            // This is a problem because the file could be currently queued to sync
+            // and it was renamed.
+            // So we need to figure out a way to track the sync and rename after
+            var cloudFile = CloudFileManager.FindFile(oldFilename);
+            if (cloudFile != null)
+            {
+                SyncQueue.Enqueue(new SyncQueueItem()
+                {
+                    CloudFile = cloudFile,
+                    OperationData = newFilename,
+                    RequestedOperation = SyncQueueItem.SyncOperation.Rename
+                });
+            }
         }
 
         void FileWatcher_FileDeleted(string fileName)
         {
-            //throw new NotImplementedException();
+            // delete not currently supported
         }               
     }
 }

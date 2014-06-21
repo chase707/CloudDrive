@@ -33,16 +33,16 @@ namespace CloudDrive.Service.SkyDrive
 
         public string GetAuthUrl()
         {
-            return this.SkyDriveClient.GetAuthorizationRequestUrl(new Scope[] { Scope.Basic, Scope.Signin, Scope.SkyDrive, Scope.SkyDriveUpdate, Scope.OfflineAccess });
+            return SkyDriveClient.GetAuthorizationRequestUrl(new Scope[] { Scope.Basic, Scope.Signin, Scope.SkyDrive, Scope.SkyDriveUpdate, Scope.OfflineAccess });
         }
 
         public void SetAuthorization(string code)
         {
-            var accessToken = this.SkyDriveClient.GetAccessToken(code);
+            var accessToken = SkyDriveClient.GetAccessToken(code);
             if (accessToken == null) throw new Exception("Could not get access token given authorization code.");
 
             if (accessToken != null)
-                this.AccessToken.AccessToken = accessToken;
+                AccessToken.AccessToken = accessToken;
         }
 
 		public IEnumerable<CloudFile> GetContents(string remotePathOrId)
@@ -55,7 +55,7 @@ namespace CloudDrive.Service.SkyDrive
 				RemoteDateUpdated = DateTime.Parse(f.Updated_Time),
 			    RemoteDateCreated = DateTime.Parse(f.Created_Time),
 				Name = f.Name
-			});
+			});            
 		}
 
 		public CloudFile Get(string remotePathOrId)
@@ -95,6 +95,19 @@ namespace CloudDrive.Service.SkyDrive
 				cloudFile.RemoteId = newRemoteFile.Id;
 			}
 		}
+
+        public void Rename(CloudFile oldFile, string newFilename)
+        {
+            if (!string.IsNullOrEmpty(oldFile.RemoteId))
+            {
+                SkyDriveClient.Rename(oldFile.RemoteId, newFilename);
+                oldFile.Name = newFilename;
+            }
+            else
+            {
+                Set(oldFile);
+            }
+        }
 
 		File CreateRemoteObject(CloudFile cloudFile, File remoteParent, File existingFile)
 		{

@@ -12,34 +12,16 @@ namespace CloudDrive.Core
             if (!File.Exists(fullPath))
                 return null;
 
-            var fi = new System.IO.FileInfo(fullPath);
-            return new CloudFile()
-            {
-                Children = null,
-                LocalDateCreated = fi.CreationTime,
-                LocalDateUpdated = fi.LastWriteTime,
-                LocalPath = fi.FullName,
-                Name = fi.Name,
-                FileType = CloudFileType.File
-            };            
+            return CloudFile.Create(new System.IO.FileInfo(fullPath), null);
         }
-        
-        //public CloudFile FindFolder(string fullPath)
-        //{
-        //    if (!Directory.Exists(fullPath))
-        //        return null;
 
-        //    var fi = new System.IO.DirectoryInfo(fullPath);
-        //    return new CloudFile()
-        //    {
-        //        Children = null,
-        //        LocalDateCreated = fi.CreationTime,
-        //        LocalDateUpdated = fi.LastWriteTime,
-        //        LocalPath = fi.FullName,
-        //        Name = fi.Name,
-        //        FileType = CloudFileType.Folder
-        //    };
-        //}
+        public CloudFile FindFolder(string fullPath)
+        {
+            if (!Directory.Exists(fullPath))
+                return null;
+
+            return CloudFile.Create(new System.IO.FileInfo(fullPath), null);
+        }
         
 		public CloudFile FindFilesAndFolders(string rootFolder, string fileSearchWildcards = "*.*")
 		{
@@ -47,7 +29,7 @@ namespace CloudDrive.Core
 				return null;
 
 			var rootFolderInfo = new System.IO.DirectoryInfo(rootFolder);
-			var topLevelFolder = CreateCloudFile(rootFolderInfo, null);
+            var topLevelFolder = CloudFile.Create(rootFolderInfo, null);
 			
 			RecursiveFileSearch(topLevelFolder, fileSearchWildcards);
 
@@ -66,7 +48,7 @@ namespace CloudDrive.Core
 			// get all sub-folders
 			foreach (System.IO.DirectoryInfo dirInfo in parentFolderInfo.GetDirectories())            
             {
-                var thisChild = CreateCloudFile(dirInfo, parentCloudFolder);
+                var thisChild = CloudFile.Create(dirInfo, parentCloudFolder);
 
 				parentCloudFolder.Children.Add(thisChild);
 
@@ -77,22 +59,7 @@ namespace CloudDrive.Core
 
 		IEnumerable<CloudFile> FindFiles(System.IO.DirectoryInfo parentFolderInfo, CloudFile parentCloudFolder, string searchString)
 		{
-            return parentFolderInfo.GetFiles(searchString).Select(fi => CreateCloudFile(fi, parentCloudFolder));
-		}
-		
-		CloudFile CreateCloudFile(System.IO.FileSystemInfo fsi, CloudFile parent)
-		{
-			bool folder = fsi.GetType() == typeof(System.IO.DirectoryInfo);
-			return new CloudFile()
-			{
-				Children = folder ? new List<CloudFile>() : null,
-				LocalDateCreated = fsi.CreationTime,
-				LocalDateUpdated = fsi.LastWriteTime,
-				LocalPath = fsi.FullName,
-				Name = fsi.Name,
-                Parent = parent,
-				FileType = folder ? CloudFileType.Folder : CloudFileType.File
-			};
-		}
+            return parentFolderInfo.GetFiles(searchString).Select(fi => CloudFile.Create(fi, parentCloudFolder));
+		}	
 	}
 }

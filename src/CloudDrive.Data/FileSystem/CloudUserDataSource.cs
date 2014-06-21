@@ -11,11 +11,11 @@ namespace CloudDrive.Data.FileSystem
 
 		public CloudUserDataSource(string storagePath)
 		{
-			this.StoragePath = storagePath;
-			this.FullFilePath = Path.Combine(storagePath, FileName);
+			StoragePath = storagePath;
+			FullFilePath = Path.Combine(storagePath, FileName);
 		}
 
-		public CloudUser Get(string userId)
+		public CloudUser Get()
 		{
 			if (!File.Exists(FullFilePath))
 				return null;
