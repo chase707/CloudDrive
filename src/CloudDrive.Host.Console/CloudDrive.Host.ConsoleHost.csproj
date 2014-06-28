@@ -37,6 +37,10 @@
     <Reference Include="Autofac">
       <HintPath>..\..\lib\packages\Autofac.3.3.0\lib\net40\Autofac.dll</HintPath>
     </Reference>
+    <Reference Include="clrzmq, Version=3.0.0.0, Culture=neutral, PublicKeyToken=ef95cdc29d237b0d, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\lib\packages\clrzmq.3.0.0-rc1\lib\net40\clrzmq.dll</HintPath>
+    </Reference>
     <Reference Include="MongoDB.Bson">
       <HintPath>..\..\lib\packages\mongocsharpdriver.1.8.3\lib\net35\MongoDB.Bson.dll</HintPath>
     </Reference>
@@ -59,7 +63,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="CloudDriveApplicationBuilder.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -70,11 +73,15 @@
   <ItemGroup>
     <ProjectReference Include="..\CloudDrive.Core\CloudDrive.Core.csproj">
       <Project>{4496c2fc-2784-41ba-9613-c19c87125dbb}</Project>
-      <Name>CloudDrive.Core2</Name>
+      <Name>CloudDrive.Core</Name>
     </ProjectReference>
     <ProjectReference Include="..\CloudDrive.Data\CloudDrive.Data.csproj">
       <Project>{6cdb7b93-dbb4-42d0-845d-d44cea26e659}</Project>
       <Name>CloudDrive.Data</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CloudDrive.Host\CloudDrive.Host.csproj">
+      <Project>{9e90fef7-fd73-4c9b-b644-dc423db41d01}</Project>
+      <Name>CloudDrive.Host</Name>
     </ProjectReference>
     <ProjectReference Include="..\CloudDrive.Service.SkyDrive\CloudDrive.Service.SkyDrive.csproj">
       <Project>{15b28b7e-f267-4e4d-b434-21e0d09987ac}</Project>
@@ -83,6 +90,10 @@
     <ProjectReference Include="..\CloudDrive.Service\CloudDrive.Service.csproj">
       <Project>{22980de0-40cb-4ed4-8f68-61d2758bad8b}</Project>
       <Name>CloudDrive.Service</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\CloudDrive.Tracing\CloudDrive.Tracing.csproj">
+      <Project>{370a3f11-114c-42a9-ac87-3be649bd39cb}</Project>
+      <Name>CloudDrive.Tracing</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -34,7 +34,7 @@ namespace CloudDrive.Core
                 return true;
 
             var cloudInfo = CloudService.Get(cacheFile.RemoteId);
-            if (cloudInfo.RemoteDateUpdated < localFile.LocalDateUpdated)
+            if (cloudInfo == null || cloudInfo.RemoteDateUpdated < localFile.LocalDateUpdated)
                 return true;
 
             return false;

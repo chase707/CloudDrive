@@ -1,18 +1,12 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
+using System.Configuration;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
+using CloudDrive.Core;
 using CloudDrive.Data;
 using CloudDrive.Data.FileSystem;
-using CloudDrive.Core;
-using System.Configuration;
 
-namespace CloudDrive.Configuration.App
+namespace CloudDrive.Host.Configuration
 {
     public partial class MainForm : Form
     {

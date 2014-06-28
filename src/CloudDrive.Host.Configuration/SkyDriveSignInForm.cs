@@ -1,18 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Windows;
-using System.IO;
+﻿using System.Windows.Forms;
 using CloudDrive.Service.SkyDrive;
-using System.Configuration;
 
-namespace CloudDrive.Configuration.App
+namespace CloudDrive.Host.Configuration
 {
 	public partial class SkyDriveSignInForm : Form
 	{

@@ -10,48 +10,45 @@ namespace CloudDrive.Core
     public delegate CloudFileManager CloudFileManagerFactory(CloudUser currentUser);
 	public class CloudFileManager
 	{
-		CloudUser CloudUser { get; set; }
         ICloudFileChangeComparer FileComparison { get; set; }
 
-        public CloudFileManager(CloudUser currentUser, ICloudFileChangeComparer fileComparison)
+        public CloudFileManager(ICloudFileChangeComparer fileComparison)
 		{
-			CloudUser = currentUser;
 			FileComparison = fileComparison;
 		}
        
-        public CloudFile FindFile(string localPath)
+        public CloudFile FindFile(List<CloudFile> rootFiles, string localPath)
         {
-            return RecursiveFindMatch(CloudUser.Files, localPath);
+            return RecursiveFindMatch(rootFiles, localPath);
         }
 
-        public void FindChanges(CloudUser refreshedUser)
+        public void FindChanges(List<CloudFile> cachedFiles, List<CloudFile> allFiles)
         {
-            RecursiveFindChanges(refreshedUser.Files);
+            RecursiveFindChanges(cachedFiles, allFiles);
         }
 
-        public CloudUser RefreshUser()
+        public List<CloudFile> FindAllFiles(List<CloudFile> rootFiles)
         {
-            var refreshedUser = new CloudUser(CloudUser.UniqueName);
-
-            var fileSearch = new FileSearch();
-            foreach (var rootFolder in CloudUser.Files)
+            List<CloudFile> cloudFiles = new List<CloudFile>();
+            var fileSearch = new FileSearch();            
+            foreach (var rootFolder in rootFiles)
             {
                 var foundFile = fileSearch.FindFilesAndFolders(rootFolder.LocalPath);
                 if (foundFile != null)
-                    refreshedUser.Files.Add(foundFile);
+                    cloudFiles.Add(foundFile);
             }
 
-            return refreshedUser;
+            return cloudFiles;
         }
         
-        void RecursiveFindChanges(List<CloudFile> files)
+        void RecursiveFindChanges(List<CloudFile> cachedFiles, List<CloudFile> allFiles)
         {
-            if (files == null)
+            if (allFiles == null)
                 return;
 
-            foreach (var localFile in files)
+            foreach (var localFile in allFiles)
             {
-                var cacheFile = FindFile(localFile.LocalPath);                
+                var cacheFile = FindFile(cachedFiles, localFile.LocalPath);                
                 localFile.NewOrChanged = FileComparison.Changed(cacheFile, localFile);
                 if (localFile.RemoteId == null && cacheFile != null && cacheFile.RemoteId != null)
                 {
@@ -62,7 +59,7 @@ namespace CloudDrive.Core
                 }
 
                 if (localFile.FileType == CloudFileType.Folder)
-                    RecursiveFindChanges(localFile.Children);
+                    RecursiveFindChanges(cachedFiles, localFile.Children);
             }
         }
 

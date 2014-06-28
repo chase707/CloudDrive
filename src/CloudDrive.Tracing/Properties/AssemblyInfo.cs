@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("CloudDrive.Configuration.App")]
+[assembly: AssemblyTitle("CloudDrive.Tracing")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("CloudDrive.Configuration.App")]
+[assembly: AssemblyProduct("CloudDrive.Tracing")]
 [assembly: AssemblyCopyright("Copyright ©  2014")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
@@ -20,7 +20,7 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("1d9b5403-725d-4bab-a897-31f1f14106b4")]
+[assembly: Guid("1dc753f9-31ba-4ba4-8818-9f407ca0d00b")]
 
 // Version information for an assembly consists of the following four values:
 //

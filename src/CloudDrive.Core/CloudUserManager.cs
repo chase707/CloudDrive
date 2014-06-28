@@ -18,20 +18,43 @@ namespace CloudDrive.Core
 
 		public CloudUser Get()
 		{
-			var myCloudUser = DataSource.Get();
-			if (myCloudUser == null)
+			var cloudUser = DataSource.Get();
+			if (cloudUser == null)
 			{
-                myCloudUser = new CloudUser(CloudUser.GenerateRandomName());
+                cloudUser = new CloudUser(CloudUser.GenerateRandomName());
 				
-				Set(myCloudUser);
+				Set(cloudUser);
 			}
 
-			return myCloudUser;
+            SetParents(cloudUser);
+
+			return cloudUser;
 		}
 
-		public void Set(CloudUser myUser)
+		public void Set(CloudUser cloudUser)
 		{
-			DataSource.Set(myUser);
-		}		
+			DataSource.Set(cloudUser);
+		}
+
+        private void SetParents(CloudUser cloudUser)
+        {
+            foreach (var file in cloudUser.Files)
+            {
+                RecursiveSetParent(file);
+            }
+        }
+
+        private void RecursiveSetParent(CloudFile cloudFile)
+        {
+            if (cloudFile.Children == null || cloudFile.Children.Count <= 0)
+                return;
+            
+            foreach (var file in cloudFile.Children)
+            {
+                file.Parent = cloudFile;
+
+                RecursiveSetParent(file);
+            }
+        }
 	}
 }

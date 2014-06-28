@@ -1,4 +1,4 @@
-﻿namespace CloudDrive.Configuration.App
+﻿namespace CloudDrive.Host.Configuration
 {
 	partial class SkyDriveSignInForm
 	{

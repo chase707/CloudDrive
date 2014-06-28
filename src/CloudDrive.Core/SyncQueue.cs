@@ -7,6 +7,7 @@ using System.IO;
 using System.Threading.Tasks;
 using CloudDrive.Service;
 using CloudDrive.Data;
+using CloudDrive.Tracing;
 
 namespace CloudDrive.Core
 {
@@ -28,8 +29,7 @@ namespace CloudDrive.Core
 	public class SyncQueue
 	{
         BlockingCollection<SyncQueueItem> CloudFileQueue { get; set; }
-        static object QueueLock = new object();
-
+        
         public SyncQueue()
         {
             CloudFileQueue = new BlockingCollection<SyncQueueItem>();
@@ -37,18 +37,22 @@ namespace CloudDrive.Core
 
         public void Enqueue(SyncQueueItem file)
         {
-            lock (QueueLock)
+            var foundQueue = CloudFileQueue.FirstOrDefault(x => x.CloudFile.LocalPath == file.CloudFile.LocalPath &&
+                x.RequestedOperation == file.RequestedOperation);
+            if (foundQueue == null)
             {
+                CoreApp.TraceWriter.Trace("Enqueueing file: {0}", file.CloudFile.LocalPath);
                 CloudFileQueue.Add(file);
+            }
+            else
+            {
+                CoreApp.TraceWriter.Trace("File already queued: {0}", file.CloudFile.LocalPath);
             }
         }
 
         public SyncQueueItem Dequeue()
         {
-            lock (QueueLock)
-            {
-                return CloudFileQueue.Take();
-            }
+            return CloudFileQueue.Take();
         }
 	}
 }

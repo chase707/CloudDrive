@@ -20,7 +20,7 @@ namespace CloudDrive.Core
             if (!Directory.Exists(fullPath))
                 return null;
 
-            return CloudFile.Create(new System.IO.FileInfo(fullPath), null);
+            return CloudFile.Create(new System.IO.DirectoryInfo(fullPath), null);
         }
         
 		public CloudFile FindFilesAndFolders(string rootFolder, string fileSearchWildcards = "*.*")

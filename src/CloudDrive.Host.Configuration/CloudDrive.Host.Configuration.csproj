@@ -7,8 +7,8 @@
     <ProjectGuid>{C35FA28D-B8A0-4BCD-A1F9-2614D7FBF90B}</ProjectGuid>
     <OutputType>WinExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CloudDrive.Configuration.App</RootNamespace>
-    <AssemblyName>CloudDrive.Configuration.App</AssemblyName>
+    <RootNamespace>CloudDrive.Host.Configuration</RootNamespace>
+    <AssemblyName>CloudDrive.Host.Configuration</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <PublishUrl>publish\</PublishUrl>
@@ -86,6 +86,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <EmbeddedResource Include="SignInForm.resx">
       <DependentUpon>SkyDriveSignInForm.cs</DependentUpon>

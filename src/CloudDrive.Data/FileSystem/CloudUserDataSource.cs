@@ -34,7 +34,7 @@ namespace CloudDrive.Data.FileSystem
 
 		public void Set(CloudUser cloudUser)
 		{			
-			using (FileStream fs = System.IO.File.Open(FullFilePath, FileMode.OpenOrCreate))
+			using (FileStream fs = System.IO.File.Open(FullFilePath, FileMode.Create))
 			{
 				using (StreamWriter sw = new StreamWriter(fs))
 				{

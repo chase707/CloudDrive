@@ -61,14 +61,20 @@ namespace CloudDrive.Service.SkyDrive
 		public CloudFile Get(string remotePathOrId)
 		{
 			var remoteFileInfo = SkyDriveClient.Get(remotePathOrId);
-			return new CloudFile()
-				{
-					RemotePath = remoteFileInfo.Upload_Location,
-					FileType = remoteFileInfo.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
-					RemoteDateUpdated = DateTime.Parse(remoteFileInfo.Updated_Time),
-					RemoteDateCreated = DateTime.Parse(remoteFileInfo.Created_Time),
-					Name = remoteFileInfo.Name
-				};
+            if (remoteFileInfo == null) 
+                return null;
+
+            if (string.IsNullOrEmpty(remoteFileInfo.Id))
+                return null;
+            
+            return new CloudFile()
+            {
+				RemotePath = remoteFileInfo.Upload_Location,
+				FileType = remoteFileInfo.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
+				RemoteDateUpdated = DateTime.Parse(remoteFileInfo.Updated_Time),
+				RemoteDateCreated = DateTime.Parse(remoteFileInfo.Created_Time),
+				Name = remoteFileInfo.Name
+            };
 		}
 
 		public void Set(CloudFile cloudFile)
@@ -96,16 +102,18 @@ namespace CloudDrive.Service.SkyDrive
 			}
 		}
 
-        public void Rename(CloudFile oldFile, string newFilename)
+        public void Rename(CloudFile cloudFile)
         {
-            if (!string.IsNullOrEmpty(oldFile.RemoteId))
+            if (!string.IsNullOrEmpty(cloudFile.RemoteId))
             {
-                SkyDriveClient.Rename(oldFile.RemoteId, newFilename);
-                oldFile.Name = newFilename;
+                if (cloudFile.FileType == CloudFileType.File)
+                    SkyDriveClient.RenameFile(cloudFile.RemoteId, cloudFile.Name);
+                else
+                    SkyDriveClient.RenameFolder(cloudFile.RemoteId, cloudFile.Name);
             }
             else
             {
-                Set(oldFile);
+                Set(cloudFile);
             }
         }
 

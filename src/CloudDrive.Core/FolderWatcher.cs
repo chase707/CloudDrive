@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 namespace CloudDrive.Core
 {
     //public delegate void FolderChangedDelegate(string folderName);
-    public delegate void FileChangedDelegate(string fileName);
-    public delegate void FileCreatedDelegate(string fileName);
-    public delegate void FileDeletedDelegate(string fileName);
-    public delegate void FileRenamedDelegate(string oldFilename, string newFilename);
+    public delegate void FileChangedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);
+    public delegate void FileCreatedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);
+    public delegate void FileDeletedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);
+    public delegate void FileRenamedDelegate(CloudDrive.Data.CloudFileType fileType, string oldFilename, string newFilename);
 
     public class FolderWatcher
     {
@@ -35,12 +35,12 @@ namespace CloudDrive.Core
 
             if (!FileWatchers.ContainsKey(folderToWatch))
             {
-                FileWatchers.Add(folderToWatch, CreateWatcher(folderToWatch, NotifyFilters.FileName));
+                FileWatchers.Add(folderToWatch, CreateWatcher(folderToWatch, NotifyFilters.LastWrite | NotifyFilters.FileName));
             }
 
             if (!FolderWatchers.ContainsKey(folderToWatch))
             {
-                FolderWatchers.Add(folderToWatch, CreateWatcher(folderToWatch,  NotifyFilters.DirectoryName));
+                FolderWatchers.Add(folderToWatch, CreateWatcher(folderToWatch, NotifyFilters.DirectoryName));
             }
         }
 
@@ -61,70 +61,74 @@ namespace CloudDrive.Core
 
         void FolderWatcher_RenamedEventOccurred(object sender, RenamedEventArgs e)
         {
+            var fileType = Data.CloudFileType.File; 
             if (FolderWatchers.ContainsValue((FileSystemWatcher)sender))
             {
-                Console.WriteLine("Directory renamed:{0}", e.FullPath);
+                fileType = Data.CloudFileType.Folder;
+                CoreApp.TraceWriter.Trace("Directory renamed:{0}", e.FullPath);
             }
             else
             {
-                Console.WriteLine("File renamed:{0}", e.FullPath);
+                CoreApp.TraceWriter.Trace("File renamed:{0}", e.FullPath);
             }
 
             switch (e.ChangeType)
             {
                 case WatcherChangeTypes.Renamed:
-                    FireFileRenamed(e);
+                    FireFileRenamed(fileType, e);
                     break;
             }
         }
 
         void FolderWatcher_FileEventOccurred(object sender, FileSystemEventArgs e)
         {
+            var fileType = Data.CloudFileType.File;
             if (FolderWatchers.ContainsValue((FileSystemWatcher)sender))
             {
-                Console.WriteLine("Directory:{0}", e.FullPath);
+                fileType = Data.CloudFileType.Folder;
+                CoreApp.TraceWriter.Trace("Directory:{0} {1}", e.FullPath, e.ChangeType);
             }
             else
             {
-                Console.WriteLine("File:{0}", e.FullPath);
+                CoreApp.TraceWriter.Trace("File:{0} {1}", e.FullPath, e.ChangeType);
             }
 
             switch (e.ChangeType)
             {
                 case WatcherChangeTypes.Changed:
-                    FireFileChanged(e);
+                    FireFileChanged(fileType, e);
                     break;
                 case WatcherChangeTypes.Created:
-                    FireFileCreated(e);
+                    FireFileCreated(fileType, e);
                     break;
                 case WatcherChangeTypes.Deleted:
-                    FireFileDeleted(e);
+                    FireFileDeleted(fileType, e);
                     break;
             }
         }
 
-        void FireFileChanged(FileSystemEventArgs e)
+        void FireFileChanged(CloudDrive.Data.CloudFileType fileType, FileSystemEventArgs e)
         {
             if (FileChanged != null)
-                FileChanged(e.FullPath);
+                FileChanged(fileType, e.FullPath);
         }
 
-        void FireFileCreated(FileSystemEventArgs e)
+        void FireFileCreated(CloudDrive.Data.CloudFileType fileType, FileSystemEventArgs e)
         {
             if (FileCreated != null)
-                FileCreated(e.FullPath);
+                FileCreated(fileType, e.FullPath);
         }
 
-        void FireFileDeleted(FileSystemEventArgs e)
+        void FireFileDeleted(CloudDrive.Data.CloudFileType fileType, FileSystemEventArgs e)
         {
             if (FileDeleted != null)
-                FileDeleted(e.FullPath);
+                FileDeleted(fileType, e.FullPath);
         }
 
-        void FireFileRenamed(RenamedEventArgs e)
-        {            
+        void FireFileRenamed(CloudDrive.Data.CloudFileType fileType, RenamedEventArgs e)
+        {
             if (FileRenamed != null)
-                FileRenamed(e.OldFullPath, e.FullPath);
+                FileRenamed(fileType, e.OldFullPath, e.FullPath);
         }
     }
 }

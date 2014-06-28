@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Configuration;
 using System.Windows.Forms;
 using CloudDrive.Service.SkyDrive;
-using System.Configuration;
 
-namespace CloudDrive.Configuration.App
+namespace CloudDrive.Host.Configuration
 {
     static class Program
     {

@@ -1,20 +1,22 @@
 ﻿using Autofac;
 using CloudDrive.Core;
+using CloudDrive.Tracing;
 
 namespace CloudDrive.Host.ConsoleHost
 {
 	class Program
 	{
-		static IContainer ApplicationContainer { get; set; }
         static void Main(string[] args)
 		{
-            ApplicationContainer = new CloudDriveApplicationBuilder().BuildApplication();
+            var appHost = new ApplicationHost();
 
-            var syncService = ApplicationContainer.Resolve<SyncService>();
+            var logTracer = appHost.AppContainer.Resolve<ITracer>();
+            var consoleTracer = appHost.AppContainer.Resolve<ConsoleTracer>();
 
-            syncService.StartSync();
+            var syncService = appHost.AppContainer.Resolve<SyncService>();
+            syncService.Start();
 
             System.Threading.Thread.CurrentThread.Join();
-		}       
+		}
 	}
 }
