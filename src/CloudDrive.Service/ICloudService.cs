@@ -7,7 +7,7 @@ namespace CloudDrive.Service
 	{
 		IEnumerable<CloudFile> GetContents(string remotePathOrId);
 		CloudFile Get(string remotePathOrId);
-		void Set(CloudFile cloudFile);
+        CloudFile Set(CloudFile cloudFile);
         void Rename(CloudFile cloudFile);
 	}
 }

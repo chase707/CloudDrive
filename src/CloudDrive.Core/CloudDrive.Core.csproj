@@ -48,8 +48,8 @@
     <Compile Include="CoreApp.cs" />
     <Compile Include="CloudUserManager.cs" />
     <Compile Include="CloudFileChangeComparer.cs" />
-    <Compile Include="FileSearch.cs" />
-    <Compile Include="CloudFileManager.cs" />
+    <Compile Include="FileSystemSearch.cs" />
+    <Compile Include="CloudFileSearch.cs" />
     <Compile Include="FolderWatcher.cs" />
     <Compile Include="SyncQueue.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

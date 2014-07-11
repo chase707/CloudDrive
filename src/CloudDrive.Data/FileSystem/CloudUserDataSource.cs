@@ -26,7 +26,12 @@ namespace CloudDrive.Data.FileSystem
 				{
 					using (JsonReader jr = new JsonTextReader(sw))
 					{
-						return new JsonSerializer().Deserialize<CloudUser>(jr);
+						var cloudUser = new JsonSerializer().Deserialize<CloudUser>(jr);
+
+                        // Parent is a recusive structure that cannot be serialized
+                        InitializeParents(cloudUser);
+
+                        return cloudUser;
 					}
 				}
 			}		
@@ -48,5 +53,26 @@ namespace CloudDrive.Data.FileSystem
 				}
 			}
 		}
+
+        private void InitializeParents(CloudUser cloudUser)
+        {
+            foreach (var file in cloudUser.Files)
+            {
+                RecursiveInitializeParents(file);
+            }
+        }
+
+        private void RecursiveInitializeParents(CloudFile cloudFile)
+        {
+            if (cloudFile.Children == null || cloudFile.Children.Count <= 0)
+                return;
+
+            foreach (var file in cloudFile.Children)
+            {
+                file.Parent = cloudFile;
+
+                RecursiveInitializeParents(file);
+            }
+        }
 	}
 }

@@ -26,8 +26,6 @@ namespace CloudDrive.Core
 				Set(cloudUser);
 			}
 
-            SetParents(cloudUser);
-
 			return cloudUser;
 		}
 
@@ -35,26 +33,5 @@ namespace CloudDrive.Core
 		{
 			DataSource.Set(cloudUser);
 		}
-
-        private void SetParents(CloudUser cloudUser)
-        {
-            foreach (var file in cloudUser.Files)
-            {
-                RecursiveSetParent(file);
-            }
-        }
-
-        private void RecursiveSetParent(CloudFile cloudFile)
-        {
-            if (cloudFile.Children == null || cloudFile.Children.Count <= 0)
-                return;
-            
-            foreach (var file in cloudFile.Children)
-            {
-                file.Parent = cloudFile;
-
-                RecursiveSetParent(file);
-            }
-        }
 	}
 }

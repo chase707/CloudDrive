@@ -7,24 +7,24 @@ using SkyNet.Model;
 
 namespace CloudDrive.Service.SkyDrive
 {
-	public class SkyDriveCloudService : ICloudService
-	{
-		Client SkyDriveClient;
-		PersistantAccessToken AccessToken;
+    public class SkyDriveCloudService : ICloudService
+    {
+        Client SkyDriveClient;
+        PersistantAccessToken AccessToken;
 
-		public SkyDriveCloudService(string configurationFolder)
-		{
-			AccessToken = new PersistantAccessToken(configurationFolder);
+        public SkyDriveCloudService(string configurationFolder)
+        {
+            AccessToken = new PersistantAccessToken(configurationFolder);
 
-			SkyDriveClient = CreateSkyClient();
+            SkyDriveClient = CreateSkyClient();
 
-			if (AccessToken.AccessToken != null)
-			{
-				var refreshedToken = SkyDriveClient.RefreshAccessToken();
-				if (refreshedToken.Access_Token != null)
-					AccessToken.AccessToken = refreshedToken;
-			}
-		}
+            if (AccessToken.AccessToken != null)
+            {
+                var refreshedToken = SkyDriveClient.RefreshAccessToken();
+                if (refreshedToken.Access_Token != null)
+                    AccessToken.AccessToken = refreshedToken;
+            }
+        }
 
         public bool Authorized
         {
@@ -45,62 +45,68 @@ namespace CloudDrive.Service.SkyDrive
                 AccessToken.AccessToken = accessToken;
         }
 
-		public IEnumerable<CloudFile> GetContents(string remotePathOrId)
-		{
-			var remoteContents = SkyDriveClient.GetContents(remotePathOrId);
-			return remoteContents.Select(f => new CloudFile() 
-			{
- 				RemotePath = f.Upload_Location,
-				FileType = f.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
-				RemoteDateUpdated = DateTime.Parse(f.Updated_Time),
-			    RemoteDateCreated = DateTime.Parse(f.Created_Time),
-				Name = f.Name
-			});            
-		}
+        public IEnumerable<CloudFile> GetContents(string remotePathOrId)
+        {
+            var remoteContents = SkyDriveClient.GetContents(remotePathOrId);
+            return remoteContents.Select(f => new CloudFile()
+            {
+                RemotePath = f.Upload_Location,
+                FileType = f.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
+                RemoteDateUpdated = DateTime.Parse(f.Updated_Time),
+                RemoteDateCreated = DateTime.Parse(f.Created_Time),
+                Name = f.Name
+            });
+        }
 
-		public CloudFile Get(string remotePathOrId)
-		{
-			var remoteFileInfo = SkyDriveClient.Get(remotePathOrId);
-            if (remoteFileInfo == null) 
+        public CloudFile Get(string remotePathOrId)
+        {
+            var remoteFileInfo = SkyDriveClient.Get(remotePathOrId);
+            if (remoteFileInfo == null)
                 return null;
 
             if (string.IsNullOrEmpty(remoteFileInfo.Id))
                 return null;
-            
+
             return new CloudFile()
             {
-				RemotePath = remoteFileInfo.Upload_Location,
-				FileType = remoteFileInfo.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
-				RemoteDateUpdated = DateTime.Parse(remoteFileInfo.Updated_Time),
-				RemoteDateCreated = DateTime.Parse(remoteFileInfo.Created_Time),
-				Name = remoteFileInfo.Name
+                RemotePath = remoteFileInfo.Upload_Location,
+                FileType = remoteFileInfo.Type == "Folder" ? CloudFileType.Folder : CloudFileType.File,
+                RemoteDateUpdated = DateTime.Parse(remoteFileInfo.Updated_Time),
+                RemoteDateCreated = DateTime.Parse(remoteFileInfo.Created_Time),
+                Name = remoteFileInfo.Name
             };
-		}
+        }
 
-		public void Set(CloudFile cloudFile)
-		{
+        public CloudFile Set(CloudFile cloudFile)
+        {
             string parentId = null;
             if (cloudFile.Parent != null)
                 parentId = cloudFile.Parent.RemoteId;
 
-			var remoteParentFolder = SkyDriveClient.Get(parentId ?? string.Empty);
-			if (remoteParentFolder == null)
-			{
-				// TODO: Create remote parent folder if not exists
-				return;
-			}
+            var remoteParentFolder = SkyDriveClient.Get(parentId ?? string.Empty);
+            if (remoteParentFolder == null)
+            {
+                // TODO: Create remote parent folder if not exists
+                return null;
+            }
 
-			File existingFile = GetRemoteFileByName(cloudFile.Name, parentId);
-			File newRemoteFile = CreateRemoteObject(cloudFile, remoteParentFolder, existingFile);
-			
-			if (newRemoteFile != null)
-			{
-				cloudFile.RemotePath = newRemoteFile.Upload_Location;
-				cloudFile.RemoteDateCreated = DateTime.Parse(newRemoteFile.Created_Time);
-				cloudFile.RemoteDateUpdated = DateTime.Parse(newRemoteFile.Updated_Time);
-				cloudFile.RemoteId = newRemoteFile.Id;
-			}
-		}
+            var existingFile = GetRemoteFileByName(cloudFile.Name, parentId);
+            var newRemoteFile = CreateOrUpdateRemoteObject(cloudFile, remoteParentFolder, existingFile);
+
+            if (newRemoteFile != null)
+            {
+                var retFile = CloudFile.ShallowCopy(cloudFile);
+
+                retFile.RemotePath = newRemoteFile.Upload_Location;
+                retFile.RemoteDateCreated = DateTime.Parse(newRemoteFile.Created_Time);
+                retFile.RemoteDateUpdated = DateTime.Parse(newRemoteFile.Updated_Time);
+                retFile.RemoteId = newRemoteFile.Id;
+
+                return retFile;
+            }
+
+            return cloudFile;
+        }
 
         public void Rename(CloudFile cloudFile)
         {
@@ -117,64 +123,64 @@ namespace CloudDrive.Service.SkyDrive
             }
         }
 
-		File CreateRemoteObject(CloudFile cloudFile, File remoteParent, File existingFile)
-		{
-			switch (cloudFile.FileType)
-			{ 
-				case CloudFileType.Folder:
-					return CreateRemoteFolder(cloudFile, remoteParent, existingFile);					
-				case CloudFileType.File:
-					return CreateRemoteFile(cloudFile, remoteParent, existingFile);					
-			}
+        File CreateOrUpdateRemoteObject(CloudFile cloudFile, File remoteParent, File existingFile)
+        {
+            switch (cloudFile.FileType)
+            {
+                case CloudFileType.Folder:
+                    return FindOrCreateRemoteFolder(cloudFile, remoteParent, existingFile);
+                case CloudFileType.File:
+                    return CreateOrUpdateRemoteFile(cloudFile, remoteParent, existingFile);
+            }
 
-			return null;
-		}
+            return null;
+        }
 
-		File CreateRemoteFolder(CloudFile cloudFile,  File remoteParentFolder, File existingRemoteFile)
-		{			
-			// only create the remote file it it doesn't exist
-			if (existingRemoteFile == null)
-				return SkyDriveClient.CreateFolder(remoteParentFolder.Id, cloudFile.Name);
-			
-			return existingRemoteFile;
-		}
+        File FindOrCreateRemoteFolder(CloudFile cloudFile, File remoteParentFolder, File existingRemoteFolder)
+        {
+            // only create the remote file it it doesn't exist
+            if (existingRemoteFolder == null)
+                return SkyDriveClient.CreateFolder(remoteParentFolder.Id, cloudFile.Name);
 
-		File CreateRemoteFile(CloudFile cloudFile, File remoteParentFolder, File existingRemoteFile)
-		{
-			File newRemoteFile = null;
+            return existingRemoteFolder;
+        }
 
-			// make sure the file exists locally before syncing it
-			if (System.IO.File.Exists(cloudFile.LocalPath))
-			{
-				// read the file data
-				var bytes = System.IO.File.ReadAllBytes(cloudFile.LocalPath);
+        File CreateOrUpdateRemoteFile(CloudFile cloudFile, File remoteParentFolder, File existingRemoteFile)
+        {
+            File newRemoteFile = null;
 
-				// create it remotely
-				newRemoteFile = SkyDriveClient.Write(remoteParentFolder.Id, bytes, cloudFile.Name, "application/octet-stream");
+            // make sure the file exists locally before syncing it
+            if (System.IO.File.Exists(cloudFile.LocalPath))
+            {
+                // read the file data
+                var bytes = System.IO.File.ReadAllBytes(cloudFile.LocalPath);
 
-				// refresh the file object
-				if (newRemoteFile != null)
-					newRemoteFile = SkyDriveClient.Get(newRemoteFile.Id);
-			}
+                // create it remotely
+                newRemoteFile = SkyDriveClient.Write(remoteParentFolder.Id, bytes, cloudFile.Name, "application/octet-stream");
 
-			return newRemoteFile;
-		}
+                // refresh the file object
+                if (newRemoteFile != null)
+                    newRemoteFile = SkyDriveClient.Get(newRemoteFile.Id);
+            }
 
-		File GetRemoteFileByName(string name, string parentFileId = null)
-		{
-			var remoteChildObjects = SkyDriveClient.GetContents(string.IsNullOrEmpty(parentFileId) ? string.Empty : parentFileId);
-			if (remoteChildObjects != null)
-				return remoteChildObjects.FirstOrDefault(f => f.Name == name);
+            return newRemoteFile;
+        }
 
-			return null;
-		}
+        File GetRemoteFileByName(string name, string parentFileId = null)
+        {
+            var remoteChildObjects = SkyDriveClient.GetContents(string.IsNullOrEmpty(parentFileId) ? string.Empty : parentFileId);
+            if (remoteChildObjects != null)
+                return remoteChildObjects.FirstOrDefault(f => f.Name == name);
 
-		Client CreateSkyClient()
-		{
-			return new Client(Settings.ClientId, Settings.ClientSecret, Settings.LiveLoginCallbackUrl,
-				AccessToken.AccessToken != null ? AccessToken.AccessToken.Access_Token : null,
-				AccessToken.AccessToken != null ? AccessToken.AccessToken.Refresh_Token : null);
-		}
-	}
+            return null;
+        }
+
+        Client CreateSkyClient()
+        {
+            return new Client(Settings.ClientId, Settings.ClientSecret, Settings.LiveLoginCallbackUrl,
+                AccessToken.AccessToken != null ? AccessToken.AccessToken.Access_Token : null,
+                AccessToken.AccessToken != null ? AccessToken.AccessToken.Refresh_Token : null);
+        }
+    }
 }
 

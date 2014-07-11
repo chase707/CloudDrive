@@ -1,4 +1,5 @@
-﻿using System;
+﻿using System.IO;
+using System;
 using System.Collections.Generic;
 using System.Web.Script.Serialization;
 
@@ -31,9 +32,9 @@ namespace CloudDrive.Data
         [ScriptIgnore]
 		public bool NewOrChanged { get; set; }
 
-        public static CloudFile Create(System.IO.FileSystemInfo fsi, CloudFile parent)
+        public static CloudFile Create(FileSystemInfo fsi, CloudFile parent)
         {
-            bool folder = fsi.GetType() == typeof(System.IO.DirectoryInfo);
+            bool folder = fsi.GetType() == typeof(DirectoryInfo);
             return new CloudFile()
             {
                 Children = folder ? new List<CloudFile>() : null,
@@ -44,6 +45,22 @@ namespace CloudDrive.Data
                 Parent = parent,
                 FileType = folder ? CloudFileType.Folder : CloudFileType.File
             };
+        }
+
+        public static CloudFile ShallowCopy(CloudFile cloudFile)
+        {
+            if (cloudFile == null || string.IsNullOrEmpty(cloudFile.LocalPath)) return null;
+
+            var fsi = cloudFile.FileType == CloudFileType.File ? (FileSystemInfo)new FileInfo(cloudFile.LocalPath) : (FileSystemInfo)new DirectoryInfo(cloudFile.LocalPath);
+            var newFile = Create(fsi, cloudFile.Parent);
+
+            newFile.NewOrChanged = cloudFile.NewOrChanged;
+            newFile.RemoteDateCreated = cloudFile.RemoteDateCreated;
+            newFile.RemoteDateUpdated = cloudFile.RemoteDateUpdated;
+            newFile.RemoteId = cloudFile.RemoteId;
+            newFile.RemotePath = cloudFile.RemotePath;
+            
+            return newFile;
         }
 	}
 }

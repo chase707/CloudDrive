@@ -41,7 +41,7 @@ namespace CloudDrive.Host.Configuration
             {
                 if (!CloudUser.Files.Any(x => x.LocalPath.Equals(folderBrowserDialog1.SelectedPath, StringComparison.OrdinalIgnoreCase)))
                 {
-                    var file = new CloudDrive.Core.FileSearch().FindFolder(folderBrowserDialog1.SelectedPath);
+                    var file = new CloudDrive.Core.FileSystemSearch().FindFolder(folderBrowserDialog1.SelectedPath);
                     if (file != null)
                     {
                         CloudUser.Files.Add(file);

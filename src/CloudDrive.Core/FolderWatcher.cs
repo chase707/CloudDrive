@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 
 namespace CloudDrive.Core
 {
-    //public delegate void FolderChangedDelegate(string folderName);
     public delegate void FileChangedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);
     public delegate void FileCreatedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);
     public delegate void FileDeletedDelegate(CloudDrive.Data.CloudFileType fileType, string fileName);

@@ -39,12 +39,12 @@ namespace CloudDrive.Host
 
 			containerBuilder.RegisterType<CloudUserManager>();
 
-			containerBuilder.RegisterType<CloudFileManager>();
+			containerBuilder.RegisterType<CloudFileSearch>();
 
 			containerBuilder.RegisterType<SyncQueue>()
                 .SingleInstance();
             
-			containerBuilder.RegisterType<FileSearch>();
+			containerBuilder.RegisterType<FileSystemSearch>();
 
 			containerBuilder.RegisterType<FolderWatcher>();
 
