@@ -1,58 +1,59 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using System.Linq;
-using System.Text;
-using System.IO;
-using System.Threading.Tasks;
-using CloudDrive.Service;
+﻿using System.Collections.Concurrent;
 using CloudDrive.Data;
-using CloudDrive.Tracing;
 
 namespace CloudDrive.Core
 {
-    public class SyncQueueItem
-    {
-        public enum SyncOperation
-        {
-            None,
-            Save,
-            Rename,
-            Delete
-        }
-
-        public CloudFile CloudFile { get; set; }
-        public object OperationData { get; set; }
-        public SyncOperation RequestedOperation { get; set; }
-    }
-
-	public class SyncQueue
+	public class SyncQueueItem
 	{
-        BlockingCollection<SyncQueueItem> CloudFileQueue { get; set; }
-        
-        public SyncQueue()
-        {
-            CloudFileQueue = new BlockingCollection<SyncQueueItem>();
-        }
+		public enum SyncOperation
+		{
+			None,
+			Save,
+			Rename,
+			Delete
+		}
 
-        public void Enqueue(SyncQueueItem file)
-        {
-            var foundQueue = CloudFileQueue.FirstOrDefault(x => x.CloudFile.LocalPath == file.CloudFile.LocalPath &&
-                x.RequestedOperation == file.RequestedOperation);
-            if (foundQueue == null)
-            {
-                CoreApp.TraceWriter.Trace("Enqueueing file: {0}", file.CloudFile.LocalPath);
-                CloudFileQueue.Add(file);
-            }
-            else
-            {
-                CoreApp.TraceWriter.Trace("File already queued: {0}", file.CloudFile.LocalPath);
-            }
-        }
+		public CloudFileType CloudFileType { get; set; }
 
-        public SyncQueueItem Dequeue()
-        {
-            return CloudFileQueue.Take();
-        }
+		/// <summary>
+		/// Matching file found in the cloud during scan
+		/// </summary>
+		public CloudFile MatchedFile { get; set; }
+
+		public string CloudFilename { get; set; }
+
+		public string OldFilename { get; set; }
+
+		public SyncOperation RequestedOperation { get; set; }
+
+		public override string ToString()
+		{
+			return string.Format("{0} - {1} - {2}", RequestedOperation, CloudFileType, MatchedFile != null ? MatchedFile.LocalPath : CloudFilename);
+		}
+	}
+
+	public class FileSyncQueue
+	{
+		BlockingCollection<SyncQueueItem> cloudFileQueue;
+
+		public FileSyncQueue()
+		{
+			cloudFileQueue = new BlockingCollection<SyncQueueItem>();
+		}
+
+		public void Enqueue(SyncQueueItem file)
+		{
+			cloudFileQueue.Add(file);			
+		}
+
+		public SyncQueueItem Dequeue()
+		{
+			return cloudFileQueue.Take();
+		}
+
+		public void Stop()
+		{
+			cloudFileQueue.CompleteAdding();
+		}
 	}
 }

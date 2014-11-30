@@ -16,20 +16,20 @@ namespace CloudDrive.Core
 			DataSource = cloudUserDataSource;
 		}
 
-		public CloudUser Get()
+		public CloudUser Load()
 		{
 			var cloudUser = DataSource.Get();
 			if (cloudUser == null)
 			{
                 cloudUser = new CloudUser(CloudUser.GenerateRandomName());
 				
-				Set(cloudUser);
+				Save(cloudUser);
 			}
 
 			return cloudUser;
 		}
 
-		public void Set(CloudUser cloudUser)
+		public void Save(CloudUser cloudUser)
 		{
 			DataSource.Set(cloudUser);
 		}

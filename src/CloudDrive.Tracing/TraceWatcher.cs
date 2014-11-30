@@ -43,15 +43,22 @@ namespace CloudDrive.Tracing
 
         private void Run()
         {
-            while (Running)
-            {
-                var message = Tracer.Receive();
-                if (!string.IsNullOrEmpty(message))
-                {
-                    if (TraceReceived != null)
-                        TraceReceived(this, message);
-                }
-            }
+			try
+			{
+				while (Running)
+				{
+					var message = Tracer.Receive();
+					if (!string.IsNullOrEmpty(message))
+					{
+						if (TraceReceived != null)
+							TraceReceived(this, message);
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(String.Format("Trace Exception: {0}", ex.ToString()));
+			}
         }
     }
 }

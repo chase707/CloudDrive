@@ -28,26 +28,28 @@
         /// </summary>
         private void InitializeComponent()
         {
-            cloudDriveServiceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
-            cloudDriveServiceInstaller = new System.ServiceProcess.ServiceInstaller();
-            // 
-            // cloudDriveServiceProcessInstaller
-            // 
-            cloudDriveServiceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalService;
-            cloudDriveServiceProcessInstaller.Password = null;
-            cloudDriveServiceProcessInstaller.Username = null;
-            // 
-            // cloudDriveServiceInstaller
-            // 
-            cloudDriveServiceInstaller.DelayedAutoStart = true;
-            cloudDriveServiceInstaller.ServiceName = "CloudDrive";
-            cloudDriveServiceInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
-            // 
-            // ProjectInstaller
-            // 
-            Installers.AddRange(new System.Configuration.Install.Installer[] {
-            cloudDriveServiceProcessInstaller,
-            cloudDriveServiceInstaller});
+			this.cloudDriveServiceProcessInstaller = new System.ServiceProcess.ServiceProcessInstaller();
+			this.cloudDriveServiceInstaller = new System.ServiceProcess.ServiceInstaller();
+			// 
+			// cloudDriveServiceProcessInstaller
+			// 
+			this.cloudDriveServiceProcessInstaller.Account = System.ServiceProcess.ServiceAccount.LocalService;
+			this.cloudDriveServiceProcessInstaller.Password = null;
+			this.cloudDriveServiceProcessInstaller.Username = null;
+			// 
+			// cloudDriveServiceInstaller
+			// 
+			this.cloudDriveServiceInstaller.DelayedAutoStart = true;
+			this.cloudDriveServiceInstaller.Description = "CloudDrive sync program";
+			this.cloudDriveServiceInstaller.DisplayName = "CloudDrive";
+			this.cloudDriveServiceInstaller.ServiceName = "CloudDrive";
+			this.cloudDriveServiceInstaller.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
+			// 
+			// ProjectInstaller
+			// 
+			this.Installers.AddRange(new System.Configuration.Install.Installer[] {
+            this.cloudDriveServiceProcessInstaller,
+            this.cloudDriveServiceInstaller});
 
         }
 

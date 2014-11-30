@@ -14,12 +14,23 @@ namespace CloudDrive.Host.ServiceHost
         /// </summary>
         static void Main()
         {
-            ServiceBase[] ServicesToRun;
-            ServicesToRun = new ServiceBase[] 
-            { 
-                new CloudDriveService() 
-            };
-            ServiceBase.Run(ServicesToRun);
+			if (System.Environment.UserInteractive)
+			{
+				new CloudDriveService().StartService();
+
+				System.Threading.Thread.CurrentThread.Join();
+			}
+			else
+			{
+				System.IO.Directory.SetCurrentDirectory(System.AppDomain.CurrentDomain.BaseDirectory);
+
+				ServiceBase[] ServicesToRun;
+				ServicesToRun = new ServiceBase[] 
+				{ 
+					new CloudDriveService() 
+				};
+				ServiceBase.Run(ServicesToRun);
+			}
         }
     }
 }

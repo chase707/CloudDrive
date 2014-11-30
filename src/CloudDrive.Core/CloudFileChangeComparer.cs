@@ -13,6 +13,9 @@ namespace CloudDrive.Core
         bool Changed(CloudFile cacheFile, CloudFile localFile);
      }
 
+	/// <summary>
+	/// Compares cache file with refreshed local file and cloud version to determine if the file has changed
+	/// </summary>
     public class CloudFileChangeComparer : ICloudFileChangeComparer
     {
         ICloudService CloudService { get; set; }

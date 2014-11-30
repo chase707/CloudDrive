@@ -28,10 +28,7 @@ namespace CloudDrive.Data
         public CloudFile Parent { get; set; }
 
 		public List<CloudFile> Children { get; set; }
-
-        [ScriptIgnore]
-		public bool NewOrChanged { get; set; }
-
+        
         public static CloudFile Create(FileSystemInfo fsi, CloudFile parent)
         {
             bool folder = fsi.GetType() == typeof(DirectoryInfo);
@@ -54,7 +51,6 @@ namespace CloudDrive.Data
             var fsi = cloudFile.FileType == CloudFileType.File ? (FileSystemInfo)new FileInfo(cloudFile.LocalPath) : (FileSystemInfo)new DirectoryInfo(cloudFile.LocalPath);
             var newFile = Create(fsi, cloudFile.Parent);
 
-            newFile.NewOrChanged = cloudFile.NewOrChanged;
             newFile.RemoteDateCreated = cloudFile.RemoteDateCreated;
             newFile.RemoteDateUpdated = cloudFile.RemoteDateUpdated;
             newFile.RemoteId = cloudFile.RemoteId;

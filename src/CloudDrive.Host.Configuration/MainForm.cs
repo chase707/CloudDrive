@@ -17,7 +17,7 @@ namespace CloudDrive.Host.Configuration
         {
             var cloudUserDataSource = new CloudUserDataSource(ConfigurationManager.AppSettings["CloudDrive.Core.ConfigurationFolder"]);
             CloudUserManager = new CloudUserManager(cloudUserDataSource);
-            CloudUser = CloudUserManager.Get();
+            CloudUser = CloudUserManager.Load();
 
             InitializeComponent();
 
@@ -31,6 +31,7 @@ namespace CloudDrive.Host.Configuration
 
         private void DataBindFolders()
         {
+			foldersListBox.Items.Clear();
             foldersListBox.Items.AddRange(CloudUser.Files.OrderBy(x => x.LocalPath).Select(x => x.LocalPath).ToArray());
         }
 
@@ -58,7 +59,7 @@ namespace CloudDrive.Host.Configuration
             var result = MessageBox.Show(string.Format("Are your sure you want to delete this folder: {0}", foldersListBox.SelectedItems[0]));
             if (result == System.Windows.Forms.DialogResult.OK)
             {
-                var folders = CloudUser.Files.Where(x => x.LocalPath.Equals(folderBrowserDialog1.SelectedPath, StringComparison.OrdinalIgnoreCase));
+				var folders = CloudUser.Files.Where(x => x.LocalPath.Equals(foldersListBox.SelectedItems[0] as string, StringComparison.OrdinalIgnoreCase)).ToList();
                 foreach (var folder in folders)
                 {
                     CloudUser.Files.Remove(folder);
@@ -70,7 +71,7 @@ namespace CloudDrive.Host.Configuration
 
         private void quitBtn_Click(object sender, EventArgs e)
         {
-            CloudUserManager.Set(CloudUser);
+            CloudUserManager.Save(CloudUser);
             Close();
         }
 

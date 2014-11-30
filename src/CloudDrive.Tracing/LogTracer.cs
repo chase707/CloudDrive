@@ -20,7 +20,14 @@ namespace CloudDrive.Tracing
 
         public void Tracer_TraceReceived(object sender, string message)
         {
-            FileStream.WriteLine("[{0}] - {1}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.ff"), message);            
+			try
+			{
+				FileStream.WriteLine("[{0}] - {1}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.ff"), message);            
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(string.Format("Trace Exception: {0}", ex.ToString()));
+			}
         }
 
         public void Dispose()

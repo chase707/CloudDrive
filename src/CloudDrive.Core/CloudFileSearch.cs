@@ -10,7 +10,7 @@ namespace CloudDrive.Core
     public delegate CloudFileSearch CloudFileManagerFactory(CloudUser currentUser);
 
     /// <summary>
-    /// Searches the CloudFile caches and looks for changes
+    /// Searches the CloudFile cache and looks for changes
     /// </summary>
 	public class CloudFileSearch
 	{
@@ -31,7 +31,7 @@ namespace CloudDrive.Core
         public void MatchFiles(IEnumerable<CloudFile> cacheFiles)
         {
             var fileSearch = new FileSystemSearch();
-            foreach (var cacheFile in cacheFiles)
+            foreach (var cacheFile in cacheFiles.ToList())
             {
                 var folder = fileSearch.FindFolder(cacheFile.LocalPath);
                 if (folder != null)
@@ -54,7 +54,9 @@ namespace CloudDrive.Core
 
         void RecursiveMatchFiles(CloudFile parentFile, IEnumerable<CloudFile> fileSystemFiles)
         {
-            foreach (var foundFile in fileSystemFiles)
+            if (fileSystemFiles == null) return;
+
+            foreach (var foundFile in fileSystemFiles.ToList())
             {
                 var matchedFile = MatchFile(parentFile.Children, foundFile.LocalPath);
 

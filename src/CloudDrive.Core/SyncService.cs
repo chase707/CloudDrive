@@ -1,356 +1,426 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using CloudDrive.Data;
 using CloudDrive.Service;
+using System.Threading;
+using System.Collections.Generic;
 
 namespace CloudDrive.Core
 {
-    public delegate SyncService SyncServiceFactory(CloudUser cloudUser);
+	public delegate SyncService SyncServiceFactory(CloudUser cloudUser);
 
-    public class SyncService
-    {
-        CloudUser User { get; set; }
-        CloudUserManager UserManager { get; set; }
-        SyncQueue FileSyncQueue { get; set; }
-        FileSystemSearch FileSearch { get; set; }
-        FolderWatcher FileWatcher { get; set; }
-        ICloudService CloudService { get; set; }
-        CloudFileSearch CloudSearch { get; set; }
-        ICloudFileChangeComparer FileComparison { get; set; }
+	public class SyncService
+	{
+		CloudUser User { get; set; }
+		CloudUserManager UserManager { get; set; }
+		FileSyncQueue FileSyncQueue { get; set; }
+		FileSystemSearch FileSearch { get; set; }
+		FolderWatcher FileWatcher { get; set; }
+		ICloudService CloudService { get; set; }
+		CloudFileSearch CloudSearch { get; set; }
+		ICloudFileChangeComparer FileComparison { get; set; }		
+		bool ServiceRunning { get; set; }
+		List<Thread> Threads { get; set; }
 
-        static object CloudFileLock = new object();
+		public SyncService(FileSyncQueue syncQueue, FolderWatcher folderWatcher, FileSystemSearch fileSearch,
+			CloudUserManager cloudUserManager, CloudFileSearch cloudSearch,
+			ICloudService cloudService, ICloudFileChangeComparer fileComparison)
+		{
+			UserManager = cloudUserManager;
+			CloudSearch = cloudSearch;
+			CloudService = cloudService;
+			FileWatcher = folderWatcher;
+			FileSearch = fileSearch;
+			FileComparison = fileComparison;
+			FileSyncQueue = syncQueue;
 
-        public SyncService(SyncQueue syncQueue, FolderWatcher folderWatcher, FileSystemSearch fileSearch,
-            CloudUserManager cloudUserManager, CloudFileSearch cloudSearch, ICloudService cloudService, ICloudFileChangeComparer fileComparison)
-        {
-            UserManager = cloudUserManager;
-            CloudSearch = cloudSearch;
-            CloudService = cloudService;
-            FileWatcher = folderWatcher;
-            FileSearch = fileSearch;
-            FileComparison = fileComparison;
-            FileSyncQueue = syncQueue;
+			FileWatcher.FileChanged += FileWatcher_FileChanged;
+			FileWatcher.FileCreated += FileWatcher_FileCreated;
+			FileWatcher.FileDeleted += FileWatcher_FileDeleted;
+			FileWatcher.FileRenamed += FileWatcher_FileRenamed;
 
-            FileWatcher.FileChanged += FileWatcher_FileChanged;
-            FileWatcher.FileCreated += FileWatcher_FileCreated;
-            FileWatcher.FileDeleted += FileWatcher_FileDeleted;
-            FileWatcher.FileRenamed += FileWatcher_FileRenamed;
+			CloudSearch.FileMatched += CloudFileSearch_FileMatch;
+			CloudSearch.NewFile += CloudFileSearch_NewFile;
+			CloudSearch.DeletedFile += CloudFileSearch_FileDeleted;
 
-            CloudSearch.FileMatched += CloudFileSearch_FileMatch;
-            CloudSearch.NewFile += CloudFileSearch_NewFile;
-            CloudSearch.DeletedFile += CloudFileSearch_FileDeleted;
+			User = UserManager.Load();
+		}
 
-            User = UserManager.Get();
-        }
+		public void Start()
+		{
+			CoreApp.TraceWriter.Trace("Starting Folder Watcher...");
 
-        public void Start()
-        {
-            CoreApp.TraceWriter.Trace("Starting Folder Watcher...");
+			foreach (var file in User.Files)
+			{
+				FileWatcher.WatchFolder(file.LocalPath);
+			}
 
-            foreach (var file in User.Files)
-            {
-                FileWatcher.WatchFolder(file.LocalPath);
-            }
+			CoreApp.TraceWriter.Trace("Finding Changes Since Last Run...");
 
-            CoreApp.TraceWriter.Trace("Finding Changes Since Last Run...");
+			CloudSearch.MatchFiles(User.Files);
 
-            CloudSearch.MatchFiles(User.Files);
+			CoreApp.TraceWriter.Trace("Starting Sync Queue...");
 
-            CoreApp.TraceWriter.Trace("Starting Sync Queue...");
-            new System.Threading.Thread(new System.Threading.ThreadStart(SyncFileThread)).Start();
-        }
+			ServiceRunning = true;
 
-        void SyncFileThread()
-        {
-            try
-            {
-                bool done = false;
-                while (!done)
-                {
-                    var syncItem = FileSyncQueue.Dequeue();
-                    if (syncItem != null)
-                    {
-                        CoreApp.TraceWriter.Trace("File Dequeued: {0}", syncItem.CloudFile.LocalPath);
-                        switch (syncItem.RequestedOperation)
-                        {
-                            case SyncQueueItem.SyncOperation.Save:
-                                {
-                                    CoreApp.TraceWriter.Trace(string.Format("Syncing File: {0}", syncItem.CloudFile.LocalPath));
-                                    var remoteFile = CloudService.Set(syncItem.CloudFile);
+			Threads = new List<Thread>();
 
-                                    lock (CloudFileLock)
-                                    {
-                                        // replace updated file in tree
-                                        if (syncItem.CloudFile.Parent != null)
-                                        {
-                                            remoteFile.Parent = syncItem.CloudFile.Parent;
-                                            remoteFile.Parent.Children.Add(remoteFile);
-                                            remoteFile.Parent.Children.Remove(syncItem.CloudFile);
-                                            syncItem.CloudFile.Parent = null;
-                                        }
-                                        else // replace root item
-                                        {
-                                            User.Files.Remove(syncItem.CloudFile);
-                                            User.Files.Add(remoteFile);
-                                        }
+			for (int i = 0; i < 8; i++)
+			{
+				var thread = new Thread(new System.Threading.ThreadStart(SyncFileThread));
+				Threads.Add(thread);
+				thread.Start();
+			}
+				
+			CoreApp.TraceWriter.Trace("Sync Queue Started.");
+		}
 
-                                        if (syncItem.CloudFile.Children != null)
-                                        {
-                                            foreach (var child in syncItem.CloudFile.Children)
-                                            {
-                                                child.Parent = remoteFile;
-                                                remoteFile.Children.Add(child);
-                                            }
+		public void Stop()
+		{
+			ServiceRunning = false;
+			FileSyncQueue.Stop();
+			foreach (var thread in Threads)
+			{
+				thread.Join();
+			}
+		}
 
-                                            syncItem.CloudFile.Children.Clear();
-                                        }
+		void SyncFileThread()
+		{
+			while (ServiceRunning)
+			{
+				try
+				{
 
-                                        syncItem.CloudFile = null;
+					var syncItem = FileSyncQueue.Dequeue();
+					if (syncItem != null)
+					{
+						SyncItem(syncItem);
+					}
+				}
+				catch (Exception ex)
+				{
+					CoreApp.TraceWriter.Trace("SyncQueue Exception: {0}", ex.ToString());
+				}
+			}
+		}
 
-                                        UserManager.Set(User);
-                                    }
+		void SyncItem(SyncQueueItem syncItem)
+		{
+			if (syncItem != null)
+			{
+				CoreApp.TraceWriter.Trace("Sync Item Dequeued: {0}", syncItem);
+				switch (syncItem.RequestedOperation)
+				{
+					case SyncQueueItem.SyncOperation.Save:
+						{
+							if (!SyncSave(syncItem))
+							{
+								// requeue if failed
+								FileSyncQueue.Enqueue(syncItem);
+							}
+						}
+						break;
+					case SyncQueueItem.SyncOperation.Rename:
+						{
+							SyncRename(syncItem);
+						}
+						break;
+					case SyncQueueItem.SyncOperation.Delete:
+						{
+							SyncDelete(syncItem.CloudFileType, syncItem.CloudFilename);
+						}
+						break;
+					case SyncQueueItem.SyncOperation.None:
+						break;
+				}
+			}
+		}
 
-                                    CoreApp.TraceWriter.Trace(string.Format("Syncing File Complete: {0}", remoteFile.LocalPath));
-                                }
-                                break;
-                            case SyncQueueItem.SyncOperation.Rename:
-                                {
-                                    lock (CloudFileLock)
-                                    {
-                                        CoreApp.TraceWriter.Trace(string.Format("Renaming File: {0}", syncItem.CloudFile.LocalPath));
-                                        CloudService.Rename(syncItem.CloudFile);
-                                        UserManager.Set(User);
-                                        CoreApp.TraceWriter.Trace(string.Format("Renaming File Complete: {0}", syncItem.CloudFile.LocalPath));
-                                    }
-                                }
-                                break;
-                            case SyncQueueItem.SyncOperation.None:
-                            case SyncQueueItem.SyncOperation.Delete:
-                                break;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                CoreApp.TraceWriter.Trace("SyncQueue Exception: {0}", ex.ToString());
-            }
-        }
+		bool SyncSave(SyncQueueItem syncItem)
+		{
+			CoreApp.TraceWriter.Trace(string.Format("Syncing File: {0}", syncItem));
 
-        void FindAndEnqueueFile(CloudFileType fileType, string fileName)
-        {
-            CoreApp.TraceWriter.Trace("Finding CloudFile: {0}", fileName);
-            CloudFile cloudFile = null;
-            lock (CloudFileLock)
-            {
-                cloudFile = CloudSearch.FindFile(User.Files, fileName);
-                if (cloudFile == null)
-                {
-                    CoreApp.TraceWriter.Trace("CloudFile not found, searching filesystem...");
-                    cloudFile = TryAndFindFile(fileType, fileName);
-                    if (cloudFile == null)
-                    {
-                        CoreApp.TraceWriter.Trace("File not found on filesystem");
-                        return;
-                    }
+			CloudFile cloudFile = null;
 
-                    var fileInfo = new System.IO.FileInfo(cloudFile.LocalPath);
-                    CoreApp.TraceWriter.Trace("Finding parent: {0}", fileInfo.DirectoryName);
-                    CloudFile parent = null;
+			if (syncItem.MatchedFile != null)
+				cloudFile = syncItem.MatchedFile;
+			else
+				cloudFile = FindFileFromCacheOrFileSystem(syncItem.CloudFileType, syncItem.CloudFilename);
 
-                    parent = CloudSearch.FindFile(User.Files, fileInfo.DirectoryName);
+			lock (User)
+			{
+				// wait for parent to complete before attempting to upload
+				if (cloudFile.Parent != null && string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
+				{
+					return false;
+				}
+				if (cloudFile.Parent != null && !string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
+				{
+					var parentCloudFile = CloudService.Get(cloudFile.Parent.RemoteId);
+					if (parentCloudFile == null)
+					{
+						return false;
+					}
+				}
 
-                    if (parent == null)
-                    {
-                        CoreApp.TraceWriter.Trace("Parent not found");
-                        return;
-                    }
+				var remoteFile = CloudService.Set(cloudFile);
+				if (remoteFile == null)
+				{
+					return false;
+				}
 
-                    parent.Children.Add(cloudFile);
-                    cloudFile.Parent = parent;
+				// updated file parents in file tree
+				if (cloudFile.Parent != null)
+				{
+					remoteFile.Parent = cloudFile.Parent;
+					remoteFile.Parent.Children.Add(remoteFile);
+					remoteFile.Parent.Children.Remove(cloudFile);
+					cloudFile.Parent = null;
+				}
+				else // replace root item
+				{
+					User.Files.Remove(cloudFile);
+					User.Files.Add(remoteFile);
+				}
 
-                    UserManager.Set(User);
-                }
-                else
-                {
-                    CoreApp.TraceWriter.Trace("CloudFile Found: {0}", fileName);
-                }
-            }
+				if (cloudFile.Children != null)
+				{
+					foreach (var child in cloudFile.Children)
+					{
+						child.Parent = remoteFile;
+						remoteFile.Children.Add(child);
+					}
 
-            if (cloudFile == null) return;
+					cloudFile.Children.Clear();
+				}
 
-            FileSyncQueue.Enqueue(new SyncQueueItem()
-            {
-                CloudFile = cloudFile,
-                OperationData = null,
-                RequestedOperation = SyncQueueItem.SyncOperation.Save
-            });
-        }
+				cloudFile = null;
+				syncItem.MatchedFile = null;
 
-        void RemoveCloudFile(CloudFileType fileType, string fileName)
-        {
-            // remove from cache
-            lock (CloudFileLock)
-            {
-                var cloudFile = CloudSearch.FindFile(User.Files, fileName);
-                if (cloudFile == null) return;
+				UserManager.Save(User);
+			}
+			CoreApp.TraceWriter.Trace(string.Format("Syncing File Complete: {0}", syncItem));
 
-                if (cloudFile.Parent != null)
-                {
-                    cloudFile.Parent.Children.Remove(cloudFile);
-                    cloudFile.Parent = null;
-                }
+			return true;
+		}
 
-                UserManager.Set(User);
-            }
-        }
+		void SyncRename(SyncQueueItem syncItem)
+		{
+			if (string.IsNullOrEmpty(syncItem.OldFilename) || string.IsNullOrEmpty(syncItem.CloudFilename))
+				return;
 
-        CloudFile TryAndFindFile(CloudFileType fileType, string fileName)
-        {
-            CoreApp.TraceWriter.Trace("Trying to Find File/Folder on FileSystem {0}", fileName);
-            const int maxTrys = 20;
-            const int delay = 100;
-            var trys = 0;
-            // loop until the file is found -
-            // a new file/folder could be renamed before it gets added to the cloud file manager
-            CloudFile cloudFile = null;
-            while (cloudFile == null && trys < maxTrys)
-            {
-                cloudFile = fileType == CloudFileType.File ? FileSearch.FindFile(fileName) : FileSearch.FindFolder(fileName);
-                if (cloudFile != null)
-                {
-                    CoreApp.TraceWriter.Trace("File/Folder Found on FileSystem : {0}", fileName);
+			var newFileNoPath = Path.GetFileName(syncItem.CloudFilename);
 
-                    return cloudFile;
-                }
-                else
-                {
-                    System.Threading.Thread.Sleep(delay);
-                    trys++;
-                }
-            }
+			lock (User)
+			{
+				var cloudFile = CloudSearch.FindFile(User.Files, syncItem.OldFilename);
+				if (cloudFile != null)
+				{
+					cloudFile.LocalPath = syncItem.CloudFilename;
+					cloudFile.Name = newFileNoPath;
 
-            return null;
-        }
-        
-        void CloudFileSearch_FileDeleted(CloudFile deletedFile)
-        {
-            CoreApp.TraceWriter.Trace("FileDeleted: {0}", deletedFile.LocalPath);
+					UserManager.Save(User);
 
-            RemoveCloudFile(deletedFile.FileType, deletedFile.LocalPath);
-        }
+					CoreApp.TraceWriter.Trace(string.Format("Renaming File: {0}", cloudFile.LocalPath));
+					CloudService.Rename(cloudFile);
+					CoreApp.TraceWriter.Trace(string.Format("Renaming File Complete: {0}", cloudFile.LocalPath));
+				}
+			}
+		}
 
-        CloudFile CloudFileSearch_NewFile(CloudFile parentFolder, CloudFile newFile)
-        {
-            CoreApp.TraceWriter.Trace("Newfile: {0}, Parent: {1}", newFile.LocalPath, parentFolder.LocalPath);
+		void SyncDelete(CloudFileType fileType, string fileName)
+		{
+			// remove from cache
+			lock (User)
+			{
+				var cloudFile = CloudSearch.FindFile(User.Files, fileName);
+				if (cloudFile == null) return;
 
-            lock (CloudFileLock)
-            {
-                if (parentFolder != null)
-                {
-                    parentFolder.Children.Add(newFile);
-                    newFile.Parent = parentFolder;
-                }
-                UserManager.Set(User);
-            }
+				if (cloudFile.Parent != null)
+				{
+					cloudFile.Parent.Children.Remove(cloudFile);
+					cloudFile.Parent = null;
+				}
+				else
+				{
+					User.Files.Remove(cloudFile);
+					if (cloudFile.Children != null)
+					{
+						cloudFile.Children.Clear();
+						cloudFile.Children = null;
+					}
+				}
 
-            FileSyncQueue.Enqueue(new SyncQueueItem()
-            {
-                CloudFile = newFile,
-                OperationData = null,
-                RequestedOperation = SyncQueueItem.SyncOperation.Save
-            });
+				UserManager.Save(User);
+			}
+		}
 
-            return newFile;
-        }
+		CloudFile FindFileFromCacheOrFileSystem(CloudFileType fileType, string fileName)
+		{
+			var cloudFile = CloudSearch.FindFile(User.Files, fileName);
+			if (cloudFile == null)
+			{
+				cloudFile = TryAndFindFile(fileType, fileName);
+				if (cloudFile == null)
+				{
+					CoreApp.TraceWriter.Trace("{0} - File not found on filesystem", fileName);
+					return null;
+				}
 
-        void CloudFileSearch_FileMatch(CloudFile cacheFile, CloudFile fileSystemFile)
-        {
-            CoreApp.TraceWriter.Trace("FileMatched: {0}", cacheFile.LocalPath);
-            if (cacheFile == null || fileSystemFile == null)
-                return;
+				var fileInfo = new System.IO.FileInfo(cloudFile.LocalPath);
+				var parent = CloudSearch.FindFile(User.Files, fileInfo.DirectoryName);
+				if (parent == null)
+				{
+					CoreApp.TraceWriter.Trace("{0} - Parent not found", fileName);
+					return null;
+				}
 
-            lock (CloudFileLock)
-            {
-                if (FileComparison.Changed(cacheFile, fileSystemFile))
-                {
-                    cacheFile.LocalDateCreated = fileSystemFile.LocalDateCreated;
-                    cacheFile.LocalDateUpdated = fileSystemFile.LocalDateUpdated;
+				parent.Children.Add(cloudFile);
+				cloudFile.Parent = parent;
+			}
 
-                    UserManager.Set(User);
+			return cloudFile;
+		}
 
-                    FileSyncQueue.Enqueue(new SyncQueueItem()
-                    {
-                        CloudFile = cacheFile,
-                        OperationData = null,
-                        RequestedOperation = SyncQueueItem.SyncOperation.Save
-                    });
-                }
-            }
-        }
+		CloudFile TryAndFindFile(CloudFileType fileType, string fileName)
+		{
+			CoreApp.TraceWriter.Trace("Trying to Find File/Folder on FileSystem {0}", fileName);
+			const int maxTrys = 20;
+			const int delay = 100;
+			var trys = 0;
+			// loop until the file is found -
+			// a new file/folder could be renamed before it gets added to the cloud file manager
+			CloudFile cloudFile = null;
+			while (cloudFile == null && trys < maxTrys)
+			{
+				cloudFile = fileType == CloudFileType.File ? FileSearch.FindFile(fileName) : FileSearch.FindFolder(fileName);
+				if (cloudFile != null)
+				{
+					CoreApp.TraceWriter.Trace("File/Folder Found on FileSystem : {0}", fileName);
 
-        void FileWatcher_FileCreated(CloudFileType fileType, string fileName)
-        {
-            try
-            {
-                FindAndEnqueueFile(fileType, fileName);
-            }
-            catch (Exception ex)
-            {
-                CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
-            }
-        }
+					return cloudFile;
+				}
+				else
+				{
+					System.Threading.Thread.Sleep(delay);
+					trys++;
+				}
+			}
 
-        void FileWatcher_FileChanged(CloudFileType fileType, string fileName)
-        {
-            try
-            {
-                FindAndEnqueueFile(fileType, fileName);
-            }
-            catch (Exception ex)
-            {
-                CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
-            }
-        }
+			return null;
+		}
 
-        void FileWatcher_FileRenamed(CloudFileType fileType, string oldFilename, string newFilename)
-        {
-            try
-            {
-                var newFileNoPath = Path.GetFileName(newFilename);
-                lock (CloudFileLock)
-                {
-                    var cloudFile = CloudSearch.FindFile(User.Files, oldFilename);
-                    if (cloudFile != null)
-                    {
-                        cloudFile.LocalPath = newFilename;
-                        cloudFile.Name = newFileNoPath;
-                        UserManager.Set(User);
+		void CloudFileSearch_FileDeleted(CloudFile deletedFile)
+		{
+			CoreApp.TraceWriter.Trace("CloudFileSearch_FileDeleted: {0}", deletedFile.LocalPath);
 
-                        FileSyncQueue.Enqueue(new SyncQueueItem()
-                        {
-                            CloudFile = cloudFile,
-                            OperationData = oldFilename,
-                            RequestedOperation = SyncQueueItem.SyncOperation.Rename
-                        });
+			SyncDelete(deletedFile.FileType, deletedFile.LocalPath);
+		}
 
-                        return;
-                    }
-                }
+		CloudFile CloudFileSearch_NewFile(CloudFile parentFolder, CloudFile newFile)
+		{
+			CoreApp.TraceWriter.Trace("CloudFileSearch_NewFile: {0}, Parent: {1}", newFile.LocalPath, parentFolder.LocalPath);
 
-                FindAndEnqueueFile(fileType, newFilename);
-            }
-            catch (Exception ex)
-            {
-                CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
-            }
-        }
+			// Update parent relationships
 
-        void FileWatcher_FileDeleted(CloudFileType fileType, string fileName)
-        {
-            RemoveCloudFile(fileType, fileName);
-        }
-    }
+			if (parentFolder != null)
+			{
+				parentFolder.Children.Add(newFile);
+				newFile.Parent = parentFolder;
+			}
+			UserManager.Save(User);
+
+			FileSyncQueue.Enqueue(new SyncQueueItem()
+			{
+				MatchedFile = newFile,
+				RequestedOperation = SyncQueueItem.SyncOperation.Save
+			});
+
+			return newFile;
+		}
+
+		void CloudFileSearch_FileMatch(CloudFile cacheFile, CloudFile fileSystemFile)
+		{
+			CoreApp.TraceWriter.Trace("CloudFileSearch_FileMatch: {0}", cacheFile.LocalPath);
+			if (cacheFile == null || fileSystemFile == null)
+				return;
+
+			if (FileComparison.Changed(cacheFile, fileSystemFile))
+			{
+				cacheFile.LocalDateCreated = fileSystemFile.LocalDateCreated;
+				cacheFile.LocalDateUpdated = fileSystemFile.LocalDateUpdated;
+
+				UserManager.Save(User);
+
+				FileSyncQueue.Enqueue(new SyncQueueItem()
+				{
+					MatchedFile = cacheFile,
+					RequestedOperation = SyncQueueItem.SyncOperation.Save
+				});
+			}
+		}
+
+		void FileWatcher_FileCreated(CloudFileType fileType, string fileName)
+		{
+			try
+			{
+				FileSyncQueue.Enqueue(new SyncQueueItem()
+				{
+					CloudFileType = fileType,
+					CloudFilename = fileName,
+					RequestedOperation = SyncQueueItem.SyncOperation.Save
+				});
+			}
+			catch (Exception ex)
+			{
+				CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
+			}
+		}
+
+		void FileWatcher_FileChanged(CloudFileType fileType, string fileName)
+		{
+			try
+			{
+				FileSyncQueue.Enqueue(new SyncQueueItem()
+				{
+					CloudFileType = fileType,
+					CloudFilename = fileName,
+					RequestedOperation = SyncQueueItem.SyncOperation.Save
+				});
+			}
+			catch (Exception ex)
+			{
+				CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
+			}
+		}
+
+		void FileWatcher_FileRenamed(CloudFileType fileType, string oldFilename, string newFilename)
+		{
+			try
+			{
+				FileSyncQueue.Enqueue(new SyncQueueItem()
+				{
+					CloudFileType = fileType,
+					CloudFilename = newFilename,
+					OldFilename = oldFilename,
+					RequestedOperation = SyncQueueItem.SyncOperation.Rename
+				});
+			}
+			catch (Exception ex)
+			{
+				CoreApp.TraceWriter.Trace(string.Format("Exception: {0}", ex.ToString()));
+			}
+		}
+
+		void FileWatcher_FileDeleted(CloudFileType fileType, string fileName)
+		{
+			FileSyncQueue.Enqueue(new SyncQueueItem()
+			{
+				CloudFileType = fileType,
+				CloudFilename = fileName,
+				RequestedOperation = SyncQueueItem.SyncOperation.Delete
+			});
+		}
+	}
 }

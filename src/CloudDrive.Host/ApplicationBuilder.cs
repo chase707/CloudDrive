@@ -33,7 +33,7 @@ namespace CloudDrive.Host
             containerBuilder.Register<CloudUser>(x =>
                 {
                     var cloudUserManager = x.Resolve<CloudUserManager>();
-                    return cloudUserManager.Get();
+                    return cloudUserManager.Load();
                 }
             ).SingleInstance();
 
@@ -41,7 +41,7 @@ namespace CloudDrive.Host
 
 			containerBuilder.RegisterType<CloudFileSearch>();
 
-			containerBuilder.RegisterType<SyncQueue>()
+			containerBuilder.RegisterType<FileSyncQueue>()
                 .SingleInstance();
             
 			containerBuilder.RegisterType<FileSystemSearch>();
