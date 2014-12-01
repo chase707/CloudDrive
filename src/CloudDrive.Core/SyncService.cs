@@ -1,9 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using CloudDrive.Data;
 using CloudDrive.Service;
-using System.Threading;
-using System.Collections.Generic;
 
 namespace CloudDrive.Core
 {
@@ -18,7 +19,8 @@ namespace CloudDrive.Core
 		FolderWatcher FileWatcher { get; set; }
 		ICloudService CloudService { get; set; }
 		CloudFileSearch CloudSearch { get; set; }
-		ICloudFileChangeComparer FileComparison { get; set; }		
+		ICloudFileChangeComparer FileComparison { get; set; }
+		TaskFactory TaskFactory { get; set; }
 		bool ServiceRunning { get; set; }
 		List<Thread> Threads { get; set; }
 
@@ -63,14 +65,9 @@ namespace CloudDrive.Core
 
 			ServiceRunning = true;
 
-			Threads = new List<Thread>();
+			TaskFactory = new TaskFactory(new LimitedConcurrencyLevelTaskScheduler(System.Environment.ProcessorCount));
 
-			for (int i = 0; i < 8; i++)
-			{
-				var thread = new Thread(new System.Threading.ThreadStart(SyncFileThread));
-				Threads.Add(thread);
-				thread.Start();
-			}
+			new Thread(new System.Threading.ThreadStart(SyncFileThread)).Start();
 				
 			CoreApp.TraceWriter.Trace("Sync Queue Started.");
 		}
@@ -79,10 +76,6 @@ namespace CloudDrive.Core
 		{
 			ServiceRunning = false;
 			FileSyncQueue.Stop();
-			foreach (var thread in Threads)
-			{
-				thread.Join();
-			}
 		}
 
 		void SyncFileThread()
@@ -92,10 +85,10 @@ namespace CloudDrive.Core
 				try
 				{
 
-					var syncItem = FileSyncQueue.Dequeue();
+					var syncItem = FileSyncQueue.Dequeue();					
 					if (syncItem != null)
 					{
-						SyncItem(syncItem);
+						TaskFactory.StartNew(() => SyncItem(syncItem));
 					}
 				}
 				catch (Exception ex)
@@ -144,62 +137,79 @@ namespace CloudDrive.Core
 			CloudFile cloudFile = null;
 
 			if (syncItem.MatchedFile != null)
-				cloudFile = syncItem.MatchedFile;
+			{
+				cloudFile = syncItem.MatchedFile;				
+			}
 			else
+			{
 				cloudFile = FindFileFromCacheOrFileSystem(syncItem.CloudFileType, syncItem.CloudFilename);
+			}
+
+			// ignore files that have been deleted
+			if (cloudFile.FileType == CloudFileType.File && !File.Exists(cloudFile.LocalPath))
+			{
+				return true;
+			}
+
+			if (cloudFile.FileType == CloudFileType.Folder && !Directory.Exists(cloudFile.LocalPath))
+			{
+				return true;
+			}
+			
+			// wait for parent to complete before attempting to upload
+			if (cloudFile.Parent != null && string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
+			{
+				return false;
+			}
+
+			if (cloudFile.Parent != null && !string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
+			{
+				var parentCloudFile = CloudService.Get(cloudFile.Parent.RemoteId);
+				if (parentCloudFile == null)
+				{
+					return false;
+				}
+			}
+				
+			var remoteFile = CloudService.Set(cloudFile);
+			if (remoteFile == null)
+			{
+				return false;
+			}
+
+			// updated file parents in file tree
+			if (cloudFile.Parent != null)
+			{
+				remoteFile.Parent = cloudFile.Parent;
+				remoteFile.Parent.Children.Add(remoteFile);
+				remoteFile.Parent.Children.Remove(cloudFile);
+				cloudFile.Parent = null;
+			}
+			else // replace root item
+			{
+				User.Files.Remove(cloudFile);
+				User.Files.Add(remoteFile);
+			}
+
+			if (cloudFile.Children != null)
+			{
+				foreach (var child in cloudFile.Children)
+				{
+					child.Parent = remoteFile;
+					remoteFile.Children.Add(child);
+				}
+
+				cloudFile.Children.Clear();
+			}
+
+			cloudFile = null;
+			syncItem.MatchedFile = null;
 
 			lock (User)
 			{
-				// wait for parent to complete before attempting to upload
-				if (cloudFile.Parent != null && string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
-				{
-					return false;
-				}
-				if (cloudFile.Parent != null && !string.IsNullOrEmpty(cloudFile.Parent.RemoteId))
-				{
-					var parentCloudFile = CloudService.Get(cloudFile.Parent.RemoteId);
-					if (parentCloudFile == null)
-					{
-						return false;
-					}
-				}
-
-				var remoteFile = CloudService.Set(cloudFile);
-				if (remoteFile == null)
-				{
-					return false;
-				}
-
-				// updated file parents in file tree
-				if (cloudFile.Parent != null)
-				{
-					remoteFile.Parent = cloudFile.Parent;
-					remoteFile.Parent.Children.Add(remoteFile);
-					remoteFile.Parent.Children.Remove(cloudFile);
-					cloudFile.Parent = null;
-				}
-				else // replace root item
-				{
-					User.Files.Remove(cloudFile);
-					User.Files.Add(remoteFile);
-				}
-
-				if (cloudFile.Children != null)
-				{
-					foreach (var child in cloudFile.Children)
-					{
-						child.Parent = remoteFile;
-						remoteFile.Children.Add(child);
-					}
-
-					cloudFile.Children.Clear();
-				}
-
-				cloudFile = null;
-				syncItem.MatchedFile = null;
-
 				UserManager.Save(User);
 			}
+
 			CoreApp.TraceWriter.Trace(string.Format("Syncing File Complete: {0}", syncItem));
 
 			return true;

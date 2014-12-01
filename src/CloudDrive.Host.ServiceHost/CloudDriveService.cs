@@ -25,7 +25,7 @@ namespace CloudDrive.Host.ServiceHost
 			var logTracer = appHost.AppContainer.Resolve<ITracer>();
 
 			_syncService = appHost.AppContainer.Resolve<SyncService>();
-			_syncService.Start();
+			System.Threading.Tasks.Task.Run(() => _syncService.Start());
 		}
 
         public CloudDriveService()

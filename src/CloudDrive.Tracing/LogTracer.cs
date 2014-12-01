@@ -22,7 +22,8 @@ namespace CloudDrive.Tracing
         {
 			try
 			{
-				FileStream.WriteLine("[{0}] - {1}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.ff"), message);            
+				FileStream.WriteLine("[{0}] - {1}", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss.ff"), message);
+				FileStream.Flush();
 			}
 			catch (Exception ex)
 			{

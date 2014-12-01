@@ -16,13 +16,17 @@ namespace CloudDrive.Tracing
 
         public string Receive()
         {
-            var traceMessage = Socket.ReceiveMessage();
-
             try
             {
-                using (var messageStream = new MemoryStream(traceMessage[0]))
-                using (var textReader = new StreamReader(messageStream))
-                    return textReader.ReadToEnd();
+				var traceMessage = Socket.ReceiveMessage();
+				if (traceMessage != null && traceMessage.FrameCount > 0)
+				{
+					using (var messageStream = new MemoryStream(traceMessage[0]))
+					using (var textReader = new StreamReader(messageStream))
+						return textReader.ReadToEnd();
+				}
+
+				return string.Empty;
             }
             catch (Exception)
             {
